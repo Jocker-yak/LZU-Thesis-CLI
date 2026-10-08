@@ -1,0 +1,30 @@
+# ---- 运行时会话凭证（含时效令牌 / Cookie，绝不要提交）----
+tokens.json
+tokens_v2.json
+matched.json
+*.token
+
+# ---- 下载产物 ----
+out/
+pages/
+*.pdf
+
+# ---- 本机私钥 / 连接信息 ----
+.ssh/
+tools/
+*.bundle
+
+# ---- 调试过程留下的证据 ----
+probe/
+
+# ---- 与本 CLI 无关的其它任务文件（科技报告化学式规范化）----
+科技报告.docx
+科技报告_化学式规范格式.docx
+normalize_formulas.py
+化学式规范化清单.txt
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
