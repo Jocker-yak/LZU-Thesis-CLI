@@ -29,11 +29,14 @@ python tools/gitpush.py --dry-run
 # 真推送（默认分支 main；远端已有同名分支时自动接在它后面，不覆盖历史）
 python tools/gitpush.py -m "提交说明"
 
-# 顺便导出一个本地 bundle，装了 git 之后可以 git clone xxx.bundle
+# 顺便导出一个**增量** bundle（只含本次提交，单独 clone 不了）
 python tools/gitpush.py --bundle ..\LZU-Thesis-CLI.bundle -m "提交说明"
 
 # 拉回来核对（会打印每个文件是否与本地逐字节一致）
 python tools/gitverify.py
+
+# 拉回来的同时打一个**自包含** bundle：含全部历史，装了 git 直接 git clone 就能用
+python tools/gitverify.py --bundle ..\LZU-Thesis-CLI-full.bundle
 ```
 
 ## 踩过的坑
@@ -48,3 +51,7 @@ python tools/gitverify.py
 * `ssh -o UserKnownHostsFile=<带空格的路径>` 会被 ssh 配置解析器截断到空格处，
   所以 `gitpush.py` 用 `cwd=<.ssh 目录>` + 相对路径 `known_hosts` 绕开。
 * GitLab 默认开了 `receive.fsckObjects`，对象稍有问题就会被拒；推送前务必本地自检。
+* **bundle 有两种，别搞混**：`gitpush.py --bundle` 写出来的只包含本次提交的对象，
+  头部没有 prerequisite 行，所以它看起来"自包含"其实 clone 出来会缺父提交；
+  要能直接 `git clone` 的离线备份，得用 `gitverify.py --bundle`——它协商时一个
+  `have` 都不发，服务端会把整条历史的全部可达对象都发过来，正好原样重打成完整包。

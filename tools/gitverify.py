@@ -20,7 +20,7 @@ import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gitpush import (  # noqa: E402
-    ROOT, SSH_DIR, SSH_BASE, TYPENAME,
+    ROOT, SSH_DIR, SSH_BASE, TYPENAME, ObjStore, build_pack,
     T_BLOB, T_COMMIT, T_TAG, T_TREE, read_advertisement, pkt, FLUSH, read_pkt,
 )
 
@@ -183,6 +183,8 @@ def main(argv=None) -> int:
     ap.add_argument("--branch", default="main")
     ap.add_argument("--root", default=ROOT)
     ap.add_argument("--show-tree", action="store_true")
+    ap.add_argument("--bundle", default=None,
+                    help="顺便把远端全部历史打成自包含 bundle（可 git clone）")
     args = ap.parse_args(argv)
 
     cmd = "git-upload-pack '%s'" % args.remote
@@ -223,6 +225,22 @@ def main(argv=None) -> int:
     for off, (typ, content) in resolved.items():
         sha = hashlib.sha1(b"%s %d\x00" % (TYPENAME[typ], len(content)) + content).hexdigest()
         by_sha[sha] = (typ, content)
+
+    # 上面这次协商没发任何 "have"，所以服务端把 want 的**全部历史**都发过来了
+    # —— 正好可以原地重打成自包含 bundle，以后装了 git 直接 git clone 就能用。
+    if args.bundle:
+        store = ObjStore()
+        for sha, (typ, content) in by_sha.items():
+            got = store.add(typ, content)
+            if got != sha:
+                print("!! 对象 sha 对不上：本算 %s，远端 %s" % (got, sha), file=sys.stderr)
+                return 1
+        body = build_pack(store)
+        header = ("# v2 git bundle\n%s refs/heads/%s\n\n" % (want, args.branch)).encode()
+        with open(args.bundle, "wb") as fh:
+            fh.write(header + body)
+        print("自包含 bundle 已写出：%s（%d 个对象，%d 字节）"
+              % (args.bundle, len(store.objs), len(header) + len(body)))
 
     commit = by_sha.get(want)
     if commit is None:

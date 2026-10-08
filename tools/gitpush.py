@@ -10,7 +10,7 @@
     python tools/gitpush.py --advertise                     # 只看远端有哪些 ref
     python tools/gitpush.py --branch main -m "msg" \\
         --include fulltext.py lzu_fulltext tools README.md .gitignore   # 真推送
-    python tools/gitpush.py ... --bundle LZU.bundle         # 顺便导出本地 bundle
+    python tools/gitpush.py ... --bundle LZU.bundle         # 顺便导出增量 bundle
     python tools/gitpush.py ... --dry-run                   # 造对象但不连远端
 
 对象格式、tree 排序、pkt-line、pack 头等都是按 git 规范手写的；
@@ -384,7 +384,8 @@ def write_bundle(path: str, commit_sha: str, branch: str, store: ObjStore) -> No
         fh.write(("%s refs/heads/%s\n" % (commit_sha, branch)).encode())
         fh.write(b"\n")
         fh.write(build_pack(store))
-    print("本地 bundle 已写出：%s（以后装了 git 可以 git clone %s）" % (path, path))
+    print("增量 bundle 已写出：%s（只含本次提交，需要远端历史才能 clone；"
+          "要自包含克隆包请用 gitverify.py --bundle）" % path)
 
 
 def main(argv=None) -> int:
