@@ -6,10 +6,11 @@
     python -m lzu_fulltext forge    --path <服务器PDF路径>
     python -m lzu_fulltext verify   <token> [<token> ...]
     python -m lzu_fulltext search   <关键词>
+    python -m lzu_fulltext fids     <关键词>                 # 列出每条记录的 fid
     python -m lzu_fulltext tokens   <关键词> --out tokens.json
     python -m lzu_fulltext identify <fid> [--from tokens.json]
     python -m lzu_fulltext fetch    --token <token> | --fid F --cookie S | --link <onlinePDF链接>
-    python -m lzu_fulltext grab     --keyword <关键词> (--find-fid <fid> | --index N)
+    python -m lzu_fulltext grab     --keyword <关键词> [--find-fid <fid> | --index N]
 """
 import argparse
 import json
@@ -90,6 +91,78 @@ def _load_records(path):
         return json.load(fh)
 
 
+def _scan_fids(recs, po=None, limit=0, progress=None):
+    """把每条记录的令牌拿去 .29 注册，回填它对应的 fid。
+
+    po 为 None 时表示记录里已经带着令牌（来自 tokens.json），不再访问门户。
+
+    返回 ``[{'index','id1','id2','title','tokens':[{'token','fid','status',
+    'path','filename'}]}]``。fid 为 None = 注册失败（令牌过期 / 文件已被清理）。
+    """
+    progress = progress or (lambda s: None)
+    out = []
+    for i, rec in enumerate(recs):
+        if limit and i >= limit:
+            break
+        try:
+            toks = po.tokens_for(rec) if po is not None else (rec.get("tokens") or [])
+        except Exception as e:  # noqa: BLE001
+            progress("  %02d docinfo 失败：%s" % (i, e))
+            toks = []
+        rows = []
+        for t in toks:
+            tok = t.get("token") or ""
+            r = drm.register(tok)
+            dec = t.get("decoded") or drm.decode_token(tok)
+            rows.append({"token": tok, "fid": r["fid"], "status": r["status"],
+                         "path": dec.get("path"), "filename": dec.get("filename")})
+            note = "（重试 %d 次后成功）" % (r["tries"] - 1) if r["tries"] > 1 else ""
+            progress("  %02d  fid=%-32s %s%s" % (i, r["fid"] or "注册失败",
+                                                (rec.get("title") or "")[:36], note))
+        out.append({"index": i, "id1": rec.get("id1"), "id2": rec.get("id2"),
+                    "title": rec.get("title") or "", "tokens": rows})
+    return out
+
+
+def cmd_fids(a):
+    """列出每条记录对应的 fid —— 手上没有 fid 时先跑这个。"""
+    if a.from_file:
+        recs = _load_records(a.from_file)
+        po = None
+        _p("从 %s 读入 %d 条记录（不再访问门户）" % (a.from_file, len(recs)))
+    else:
+        if not a.keyword:
+            raise SystemExit("需要给一个检索关键词，或者用 --from tokens.json")
+        po = portal.Portal()
+        recs = po.search(a.keyword)
+        _p("门户命中 %d 条" % len(recs))
+    if not recs:
+        return 1
+
+    rows = _scan_fids(recs, po, limit=a.limit, progress=_p)
+    _p("")
+    _p("序号    fid                               标题")
+    good = 0
+    for rec in rows:
+        if not rec["tokens"]:
+            _p("%02d      %-32s %s" % (rec["index"], "- 无全文链接", rec["title"][:44]))
+            continue
+        for t in rec["tokens"]:
+            if t["fid"]:
+                good += 1
+            _p("%02d      %-32s %s" % (rec["index"], t["fid"] or "注册失败",
+                                       rec["title"][:44]))
+    _p("")
+    _p("共 %d 条记录，%d 个可用 fid。" % (len(rows), good))
+    _p("拿到 fid 之后：grab --keyword <关键词> --find-fid <fid>；"
+       "或直接 grab --keyword <关键词> --index <上面那个序号>")
+    if a.json:
+        with open(a.json, "w", encoding="utf-8") as fh:
+            json.dump(rows, fh, ensure_ascii=False, indent=1)
+        _p("saved %s" % a.json)
+    return 0
+
+
 def cmd_identify(a):
     recs = _load_records(a.from_file)
     target = a.fid.lower()
@@ -147,13 +220,18 @@ def cmd_fetch(a):
 
 
 def cmd_grab(a):
-    """全自动：门户检索 -> 取令牌 -> 用 fid 指纹确认是哪一篇 -> 下载全文。"""
+    """全自动：门户检索 -> 取令牌 -> 用 fid 指纹确认是哪一篇 -> 下载全文。
+
+    不知道 fid 也能用：不给 --find-fid 时会先把每条记录的 fid 都算出来，
+    只有一条有全文就自动选中，有多条就列出来让你用 --index / --find-fid 挑。
+    """
     po = portal.Portal()
     recs = po.search(a.keyword)
     _p("门户命中 %d 条" % len(recs))
     if not recs:
         return 1
 
+    # ---- 入口一：直接指定检索结果序号 -------------------------------------- #
     if a.index is not None:
         if not 0 <= a.index < len(recs):
             raise SystemExit("--index 超出范围 0..%d" % (len(recs) - 1))
@@ -161,33 +239,59 @@ def cmd_grab(a):
         toks = po.tokens_for(rec)
         if not toks:
             raise SystemExit("第 %d 条没有全文链接" % a.index)
-        _p("选中 %02d %s" % (a.index, rec["title"]))
-        _p("  令牌 path = %s" % toks[0]["decoded"].get("path"))
+        _p("选中第 %02d 条：%s" % (a.index, rec["title"]))
+        _p("  path = %s" % toks[0]["decoded"].get("path"))
+        r = drm.register(toks[0]["token"])
+        _p("  fid  = %s" % (r["fid"] or "注册失败（令牌可能已过期）"))
         if a.dry_run:
             return 0
-        reader = drm.Reader.from_token(toks[0]["token"])
+        if not r["fid"]:
+            raise SystemExit("注册失败：personaliiifServlet 没返回 fid（status=%s）" % r["status"])
+        reader = drm.Reader(r["fid"], jar=r["jar"])
+
+    # ---- 入口二：用 fid 指纹认（不给 fid 就自动/列出候选） ------------------ #
     else:
-        target = (a.find_fid or "").lower()
-        reader = None
+        target = (a.find_fid or "").strip().lower()
+        cands = []          # [(序号, 记录, 令牌, 注册结果)]
         for i, rec in enumerate(recs):
-            toks = po.tokens_for(rec)
-            if not toks:
-                _p("  %02d 无全文链接/取不到令牌  %s" % (i, rec["title"][:40]))
-            for t in toks:
+            for t in po.tokens_for(rec):
                 r = drm.register(t["token"])
-                if r["fid"] == target:
-                    _p("命中第 %02d 条：%s" % (i, rec["title"]))
-                    _p("  fid  = %s（与目标一致）" % r["fid"])
-                    _p("  path = %s" % t["decoded"].get("path"))
-                    if a.dry_run:
-                        return 0
-                    reader = drm.Reader(r["fid"], jar=r["jar"])
-                    break
-            if reader:
-                break
-        if not reader:
-            _p("没有任何记录的 fid 等于 %s" % target)
+                if not r["fid"]:
+                    _p("  %02d  注册失败，跳过：%s" % (i, rec["title"][:40]))
+                    continue
+                if target and r["fid"] != target:
+                    continue
+                cands.append((i, rec, t, r))
+                break                      # 一条记录命中一个令牌就够了
+            if cands and target:
+                break                      # 指定了 fid，一命中就停
+
+        if not cands:
+            if target:
+                _p("没有任何记录的 fid 等于 %s" % target)
+                _p("（先用 fids 命令确认：python fulltext.py fids %s）" % a.keyword)
+            else:
+                _p("这些记录都没有可用的全文链接。")
             return 1
+
+        if len(cands) > 1:
+            _p("有 %d 条记录都有全文，请指定要哪一条：" % len(cands))
+            for i, rec, _t, r in cands:
+                _p("  %02d  fid=%s  %s" % (i, r["fid"], rec["title"][:52]))
+            _p("→ 加 --index <序号> 或 --find-fid <fid> 重跑")
+            return 1
+
+        i, rec, t, r = cands[0]
+        if target:
+            _p("命中第 %02d 条：%s" % (i, rec["title"]))
+            _p("  fid  = %s（与目标一致）" % r["fid"])
+        else:
+            _p("只有这一条有全文，自动选中第 %02d 条：%s" % (i, rec["title"]))
+            _p("  fid  = %s" % r["fid"])
+        _p("  path = %s" % t["decoded"].get("path"))
+        if a.dry_run:
+            return 0
+        reader = drm.Reader(r["fid"], jar=r["jar"])
 
     _p("fid = %s" % reader.fid)
     res = reader.fetch(outdir=a.out, name=a.name, resolution=a.resolution,
@@ -231,6 +335,14 @@ def build_parser():
     p.add_argument("--json", default="")
     p.set_defaults(func=cmd_search)
 
+    p = sub.add_parser("fids", help="列出每条记录对应的 fid（不知道 fid 时先跑这个）")
+    p.add_argument("keyword", nargs="?", default="", help="门户检索关键词；给了 --from 可省略")
+    p.add_argument("--from", dest="from_file", default="",
+                   help="不检索门户，直接用已有的 tokens.json")
+    p.add_argument("--limit", type=int, default=0, help="最多处理前 N 条记录")
+    p.add_argument("--json", default="", help="把结果写成 JSON")
+    p.set_defaults(func=cmd_fids)
+
     p = sub.add_parser("tokens", help="检索并抓出每条记录的 DRM 令牌，写 JSON")
     p.add_argument("keyword")
     p.add_argument("--out", default="tokens.json")
@@ -256,7 +368,9 @@ def build_parser():
 
     p = sub.add_parser("grab", help="一条龙：检索 → 令牌 → 用 fid 确认 → 下载全文")
     p.add_argument("--keyword", required=True, help="例如 侯扶江 或论文标题")
-    p.add_argument("--find-fid", default="", help="目标 fid（pdfindex1.jsp 链接里的那个）")
+    p.add_argument("--find-fid", default="",
+                   help="目标 fid（pdfindex1.jsp 链接里的那 32 位）。"
+                        "不给也行：只有一条有全文时自动选中，多条时列出来供挑选")
     p.add_argument("--index", type=int, default=None, help="直接指定检索结果序号")
     p.add_argument("--out", default="out")
     p.add_argument("--name", default="")

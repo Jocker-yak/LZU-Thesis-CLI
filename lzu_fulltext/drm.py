@@ -3,8 +3,13 @@
 
 已验证的服务端行为
 ------------------
-* ``fid`` 就是**原始 PDF 文件内容的 MD5**（32 位小写十六进制）。因此可以用它当
-  身份指纹：同一篇文档，谁注册都得到同一个 fid。
+* ``fid`` 就是**原始 PDF 文件字节的 MD5**（32 位小写十六进制）。实测：自己造一个
+  3 页 PDF（``md5 = 1261a0336915cef52a5e5752b4ca2f92``），把它放到阅读器的
+  ``D:\\DRM\\read\\WebRoot\\store\\test.pdf``，注册后服务器返回的 fid 正是
+  ``1261a0336915cef52a5e5752b4ca2f92``；反过来把这个文件改名成它的 md5
+  （``store\\1261a033….pdf``）再注册则 500 ``FileNotFoundException``——说明认的是
+  **内容**，不是文件名、也不是路径。所以 fid 是可靠的身份指纹：同一篇文档，
+  谁注册、在哪个会话注册，都得到同一个 fid；而 store 里的随机文件名每次都变。
 * 文档必须先"注册"进某个会话：
   ``GET /personaliiifServlet?path=<token>`` → 302 到 ``/pdfindex1.jsp?fid=<fid>``
   并下发 ``Set-Cookie: JSESSIONID``。用这个会话打开 pdfindex1.jsp 才能读到
@@ -27,6 +32,7 @@ import os
 import random
 import re
 import string
+import time
 import urllib.parse
 
 from . import net
@@ -41,6 +47,10 @@ META_FIELDS = ("fid", "sum", "pageCount", "startpage", "endpage",
                "pagewidth", "pageheight", "pdfchange")
 
 _NULLISH = (None, "", "null", "NULL")
+
+#: 服务端明确说"文件不在"时的报错特征（这种错误重试没用）
+_GONE_RE = re.compile(r"FileNotFoundException|系统找不到指定的文件|NoSuchFile",
+                      re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------- #
@@ -87,31 +97,47 @@ def md5_file(path):
 # --------------------------------------------------------------------------- #
 # 注册（把文档绑定到一个会话上）
 # --------------------------------------------------------------------------- #
-def register(token, timeout=60):
+def register(token, timeout=60, tries=3):
     """GET personaliiifServlet 注册文档。
 
-    返回 dict：fid / jar / jsessionid / status / location / requoted
+    返回 dict：fid / jar / jsessionid / status / location / requoted / tries
     fid 为 None 表示注册失败（令牌失效或文件路径不存在，服务端会 500）。
+
+    ``personaliiifServlet`` 偶尔会抖（同一个令牌前一秒 500、后一秒就正常），
+    所以这里自带重试：网络异常和服务端 5xx 会重试 ``tries`` 次（每次换新会话）；
+    服务端明确回 ``FileNotFoundException`` 这类确定性错误则不重试。
     """
     result = {"fid": None, "jar": None, "jsessionid": "", "status": None,
-              "location": "", "requoted": False}
+              "location": "", "requoted": False, "tries": 0}
     for candidate in (token, net.quote_token(token)):
-        jar = net.new_jar()
-        op = net.opener(jar, redirect=False)
-        try:
-            code, headers, _ = net.open_once(op, BASE + REGISTER_PATH + candidate,
-                                             timeout=timeout)
-        except Exception as e:  # noqa: BLE001
-            result["status"] = "ERR %s" % e
-            continue
-        loc = headers.get("Location", "")
-        m = re.search(r"fid=([0-9a-fA-F]{32})", loc or "")
-        result.update(status=code, location=loc, jar=jar,
-                      jsessionid=net.cookie_value(jar, "JSESSIONID"),
-                      requoted=(candidate != token))
-        if m:
-            result["fid"] = m.group(1).lower()
-            return result
+        for attempt in range(max(1, tries)):
+            result["tries"] += 1
+            jar = net.new_jar()
+            op = net.opener(jar, redirect=False)
+            try:
+                code, headers, body = net.open_once(
+                    op, BASE + REGISTER_PATH + candidate, timeout=timeout)
+            except Exception as e:  # noqa: BLE001 - 网络抖动，重试
+                result.update(status="ERR %s" % e, jar=jar,
+                              requoted=(candidate != token))
+                if attempt + 1 < tries:
+                    time.sleep(1.0 * (attempt + 1))
+                    continue
+                break
+            loc = headers.get("Location", "")
+            m = re.search(r"fid=([0-9a-fA-F]{32})", loc or "")
+            result.update(status=code, location=loc, jar=jar,
+                          jsessionid=net.cookie_value(jar, "JSESSIONID"),
+                          requoted=(candidate != token))
+            if m:
+                result["fid"] = m.group(1).lower()
+                return result
+            body_text = (body or b"").decode("utf-8", "replace")
+            fatal = bool(code and code < 500) or bool(_GONE_RE.search(body_text))
+            if attempt + 1 < tries and not fatal:
+                time.sleep(1.0 * (attempt + 1))
+                continue
+            break
     return result
 
 
