@@ -60,25 +60,38 @@ D:\DRM\read\WebRoot\store\nspt1u….pdf
 | ③ 已有令牌 | `python fulltext.py verify <令牌>` —— 注册这个令牌，打印它的 fid |
 | ④ 有原始 PDF 文件 | 文件本身就是答案：`certutil -hashfile 论文.pdf MD5`（Linux/macOS：`md5sum 论文.pdf`） |
 
-`fids` 的典型输出：
+`fids` 的实跑输出：
 
 ```powershell
 python fulltext.py fids "补播白刺花"
 
-# 门户命中 3 条
-#   00  fid=9d2b…                      青海湖流域高寒草地…
-#   02  fid=5cff3489f0c23900f886634fffe22fff  补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
+# 门户命中 1 条
+#   00  fid=5cff3489f0c23900f886634fffe22fff 补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
+#   00  fid=注册失败                             补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
 #
 # 序号    fid                               标题
-# 00      9d2b0d6f…                        青海湖流域高寒草地…
-# 02      5cff3489f0c23900f886634fffe22fff  补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
+# 00      5cff3489f0c23900f886634fffe22fff 补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
+# 00      注册失败                             补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
 #
-# 共 3 条记录，2 个可用 fid。
-# 拿到 fid 之后：grab --keyword <关键词> --find-fid <fid>；或直接 grab --keyword <关键词> --index <上面那个序号>
+# 共 1 条记录，1 个可用 fid。
 ```
 
+（这条记录挂了 2 个令牌，另一个指向服务器上已不存在的 `_free.pdf`，所以显示"注册失败"；
+一个令牌注册失败不影响其他令牌。）
+
 不想先查也行：`grab` 不传 `--find-fid` / `--index` 时会**自动列出候选和它们的 fid**，
-只有一条有全文时直接自动选中。
+只有一条有全文时直接自动选中：
+
+```powershell
+python fulltext.py grab --keyword 侯扶江 --dry-run
+
+# 门户命中 20 条
+# 有 14 条记录都有全文，请指定要哪一条：
+#   05  fid=5cff3489f0c23900f886634fffe22fff  补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
+#   07  fid=970f3a4ec5c821b35189e2c55b97df91  饲养模式影响牦牛肉品质与风味的作用机理
+#   …（共 14 条）
+# → 加 --index <序号> 或 --find-fid <fid> 重跑
+```
 
 > `--index` 用的是**同一关键词**下 `search` 的序号。`fids "A"` 得到序号 5，
 > 就只能在 `grab --keyword "A" --index 5` 里用；换关键词序号会变。
