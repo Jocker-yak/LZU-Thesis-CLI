@@ -4,19 +4,8 @@
  *    这是整条链路能跑通的关键（见 .PLAN-NOTES.md「传输：bridge 优先」）。
  * 2) 页面上隐藏域元信息的读取。
  */
-import { api } from '../lib/ext.js';
+import { api, bytesToBase64 } from '../lib/ext.js';
 import { parseMeta, fidFromHtml, pageCount } from '../lib/reader.js';
-
-const CHUNK = 0x8000;
-
-/** Uint8Array → base64（分块，避免 apply 参数过长）。 */
-export function bytesToBase64(bytes) {
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
-}
 
 async function doFetch(spec) {
   try {
@@ -39,7 +28,13 @@ async function doFetch(spec) {
       bodyBase64: bytesToBase64(body),
     };
   } catch (err) {
-    return { ok: false, error: String((err && err.message) || err) };
+    // 把 stack 也带回去：Firefox 里这个问题只在 content script 沙箱里出现，
+    // 后台/测试侧只能靠它定位到具体是哪一步（见 transport.bridgeRequest 的日志）。
+    return {
+      ok: false,
+      error: String((err && err.message) || err),
+      stack: String((err && err.stack) || ''),
+    };
   }
 }
 

@@ -7,8 +7,8 @@
  */
 import { AppError } from '../lib/http.js';
 import { originOf, READER_ORIGIN, PORTAL_ORIGIN } from '../lib/protocol.js';
-import { base64ToBytes, bytesToBase64, logEvent } from '../lib/ext.js';
-import { sendToTab, ensureWorker } from './tabs.js';
+import { base64ToBytes, bytesToBase64, isFirefox, logEvent } from '../lib/ext.js';
+import { sendToTab, ensureWorker, findTabsByOrigin } from './tabs.js';
 import { getSettings } from '../lib/settings.js';
 
 const WORKER_URLS = {
@@ -45,7 +45,9 @@ async function bridgeRequest(spec) {
     responseType: spec.responseType || 'bytes',
   }, { tries: 8, timeoutMs: spec.timeoutMs || 45000 });
   if (!reply || !reply.ok) {
-    throw new AppError(`页面内请求失败：${(reply && reply.error) || '无响应'}`, 'BRIDGE_FAIL');
+    const err = new AppError(`页面内请求失败：${(reply && reply.error) || '无响应'}`, 'BRIDGE_FAIL');
+    err.bridgeStack = reply && reply.stack;
+    throw err;
   }
   return {
     status: reply.status,
@@ -93,17 +95,22 @@ export function createBrowserTransport(settings = { transport: 'auto' }) {
       } catch (err) {
         bridgeErr = err;
         if (mode === 'bridge') throw err;
-        logEvent('warn', `桥接失败，改用后台 fetch：${err.message}`, { url: spec.url });
+        logEvent('warn', `桥接失败，改用后台 fetch：${err.message}`, {
+          url: spec.url,
+          ...(err.bridgeStack ? { bridgeStack: String(err.bridgeStack).split('\n').slice(0, 4).join(' | ') } : {}),
+        });
       }
     }
     try {
       return await bgRequest(spec);
     } catch (err) {
       if (bridgeErr) {
-        throw new AppError(
-          `请求失败（桥接：${bridgeErr.message}；后台：${err.message}）`,
-          'REQUEST_FAIL',
-        );
+        // Firefox 里扩展页/后台页 fetch http:// 站点会被当混合内容拦截（报 NetworkError），
+        // 兜底本来就不可能成功，错误信息里直接说清楚，免得用户以为是网络问题。
+        const message = isFirefox
+          ? `请求失败（页面内桥接：${bridgeErr.message}；Firefox 不允许扩展页直接访问 http:// 站点，请刷新目标页面后重试）`
+          : `请求失败（桥接：${bridgeErr.message}；后台：${err.message}）`;
+        throw new AppError(message, 'REQUEST_FAIL');
       }
       throw err;
     }
@@ -111,9 +118,42 @@ export function createBrowserTransport(settings = { transport: 'auto' }) {
   return { request, mode };
 }
 
-/** 探测两个站点是否可达（后台 fetch，不开标签页）。 */
+/** 借一个已打开的站点标签页探测（Firefox 的唯一可行方式）。 */
+async function probeViaTab(tabId, origin) {
+  const started = Date.now();
+  try {
+    const reply = await sendToTab(tabId, {
+      type: 'http',
+      url: `${origin}/`,
+      method: 'GET',
+      headers: {},
+      body: null,
+      responseType: 'text',
+    }, { tries: 3, timeoutMs: 8000 });
+    if (!reply || !reply.ok) {
+      return { ok: false, error: (reply && reply.error) || '无响应', ms: Date.now() - started, via: 'bridge' };
+    }
+    return { ok: true, status: reply.status, ms: Date.now() - started, via: 'bridge' };
+  } catch (err) {
+    return { ok: false, error: (err && err.message) || String(err), ms: Date.now() - started, via: 'bridge' };
+  }
+}
+
+/**
+ * 探测两个站点是否可达（尽量不开新标签页）。
+ * Chrome：后台 fetch（host_permissions 够用）。
+ * Firefox：扩展页 fetch http:// 会被混合内容策略拦掉，只能复用已打开的站点标签页；
+ *          一个都没有时返回 ok:null + skipped，UI 显示“打开站点页面后自动使用”，而不是误报不可达。
+ */
 export async function probeOrigins() {
   const check = async (origin) => {
+    if (isFirefox) {
+      const worker = workers.get(origin);
+      if (worker) return probeViaTab(worker, origin);
+      const tabs = await findTabsByOrigin(origin);
+      if (tabs.length) return probeViaTab(tabs[0].id, origin);
+      return { ok: null, skipped: true, note: 'Firefox 需先打开该站点页面，扩展页无法直接访问 http:// 站点' };
+    }
     const started = Date.now();
     try {
       const res = await bgRequest({ url: `${origin}/`, timeoutMs: 8000 });

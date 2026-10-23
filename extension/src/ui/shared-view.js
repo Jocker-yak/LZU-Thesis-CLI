@@ -170,12 +170,16 @@ export function mountView(root, { compact = false } = {}) {
     try {
       const reply = await call('probe');
       state.probe = reply;
-      const portalOk = Boolean(reply.portal && reply.portal.ok);
-      const readerOk = Boolean(reply.reader && reply.reader.ok);
-      dot.className = `status-dot ${portalOk ? 'ok' : 'bad'}`;
-      dot.title = `门户 202.201.7.17：${portalOk ? `可达 ${reply.portal.status || 200}` : '不可达（校内网/登录）'}；`
-        + `阅读器 202.201.7.29：${readerOk ? '可达' : '不可达'}`;
-      if (refresh) showToast(portalOk ? '门户可达' : '门户不可达：请确认校内网与登录状态', !portalOk);
+      const portalOk = reply.portal && reply.portal.ok === true;
+      const readerOk = reply.reader && reply.reader.ok === true;
+      const skipped = reply.portal && reply.portal.ok === null;
+      dot.className = `status-dot ${portalOk ? 'ok' : (skipped ? 'unknown' : 'bad')}`;
+      dot.title = skipped
+        ? `门户 202.201.7.17 / 阅读器 202.201.7.29：${reply.portal.note || '需先打开站点页面'}` : `门户 202.201.7.17：${portalOk ? `可达 ${reply.portal.status || 200}` : '不可达（校内网/登录）'}；阅读器 202.201.7.29：${readerOk ? '可达' : '不可达'}`;
+      if (refresh) {
+        if (skipped) showToast(reply.portal.note || '打开门户页面后即可使用', false);
+        else showToast(portalOk ? '门户可达' : '门户不可达：请确认校内网与登录状态', !portalOk);
+      }
     } catch (err) {
       dot.className = 'status-dot bad';
       dot.title = err.message;
@@ -249,11 +253,15 @@ export function mountView(root, { compact = false } = {}) {
       },
     }, [input, submit]);
 
+    const probeSkipped = state.probe && state.probe.portal && state.probe.portal.ok === null;
+    const probeFailed = state.probe && state.probe.portal && state.probe.portal.ok === false;
     const probeHint = el('div', {
-      class: `hint${state.probe && state.probe.portal && state.probe.portal.ok === false ? ' error' : ''}`,
-      text: state.probe && state.probe.portal && state.probe.portal.ok === false
+      class: `hint${probeFailed ? ' error' : ''}`,
+      text: probeFailed
         ? '门户当前不可达：请连校内网并在浏览器里登录门户后再试。'
-        : '检索走门户 xkcode 07* 库；只读检索，不改变任何数据。',
+        : (probeSkipped
+          ? (state.probe.portal.note || 'Firefox 需先打开门户页面，之后会自动使用页面内通道。')
+          : '检索走门户 xkcode 07* 库；只读检索，不改变任何数据。'),
     });
 
     const toolbar = el('div', { class: 'toolbar' }, [

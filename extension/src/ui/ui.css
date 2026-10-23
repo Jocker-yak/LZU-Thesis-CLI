@@ -129,6 +129,8 @@ textarea { resize: vertical; min-height: 84px; font-family: ui-monospace, SFMono
 }
 .status-dot.ok { background: #34d399; box-shadow: 0 0 0 2px rgba(52,211,153,.25); }
 .status-dot.bad { background: #f87171; box-shadow: 0 0 0 2px rgba(248,113,113,.25); }
+/* 未检测（Firefox 需要先打开站点页面） */
+.status-dot.unknown { background: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,.25); }
 
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .toolbar .spacer { flex: 1; }

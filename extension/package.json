@@ -1,6 +1,6 @@
 {
   "name": "lzu-fulltext-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "LZU 论文全文助手 —— 把 LZU-Thesis-CLI 的抓取流程做成 Chrome / Firefox 浏览器插件",
@@ -13,10 +13,12 @@
     "test:unit": "node --test tests/unit/*.test.mjs",
     "test:integration": "node --test tests/integration/*.test.mjs",
     "test:e2e": "node scripts/e2e.mjs",
-    "test:all": "npm run test && npm run test:e2e",
+    "test:all": "npm run test && npm run test:e2e && npm run test:e2e:firefox",
     "lint:firefox": "web-ext lint --source-dir dist/firefox",
     "smoke:live": "node tests/e2e/live-portal.mjs",
-    "fixtures:capture": "node tests/fixtures/capture.mjs"
+    "fixtures:capture": "node tests/fixtures/capture.mjs",
+    "test:e2e:chrome": "node scripts/e2e.mjs",
+    "test:e2e:firefox": "node scripts/e2e-firefox.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

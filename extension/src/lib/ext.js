@@ -6,7 +6,24 @@
  * - 统一取 `globalThis.browser ?? globalThis.chrome`。
  */
 export const api = globalThis.browser ?? globalThis.chrome;
-export const isFirefox = typeof globalThis.browser !== 'undefined';
+
+/**
+ * 判断是不是 Firefox。
+ *
+ * 注意：**不能**再用 `typeof globalThis.browser !== 'undefined'` —— Chromium 156 开始
+ * 也提供了 `browser` 命名空间（跨浏览器兼容层），拿它判断会把 Chrome 误认成 Firefox，
+ * 进而在 Chrome 里走 Firefox 的下载/probe 分支。改用 Firefox 独有的
+ * `runtime.getBrowserInfo`（Chrome 里是 undefined），再用 UA 兜底。
+ */
+const navUserAgent = (() => {
+  try {
+    return String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+  } catch {
+    return '';
+  }
+})();
+export const isFirefox = typeof (api && api.runtime && api.runtime.getBrowserInfo) === 'function'
+  || navUserAgent.includes('Firefox/');
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -87,20 +104,5 @@ export async function openAppPage(hash = '') {
   return tab.id;
 }
 
-export function bytesToBase64(bytes) {
-  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < arr.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, arr.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}
-
-export function base64ToBytes(text) {
-  const clean = String(text || '').replace(/[^A-Za-z0-9+/=]/g, '');
-  const binary = atob(clean);
-  const out = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
-  return out;
-}
+// base64 的纯 JS 实现在 protocol.js（同一份代码要进 content script 沙箱，见那里的注释）。
+export { bytesToBase64, base64ToBytes } from './protocol.js';

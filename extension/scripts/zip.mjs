@@ -1,8 +1,8 @@
 /**
  * 把 dist/chrome、dist/firefox 打成可分发压缩包（零依赖，自写 ZIP 写入器）：
- *   /data/workspaces/lzu-plugin/release/lzu-fulltext-chrome-1.0.0.zip
- *   /data/workspaces/lzu-plugin/release/lzu-fulltext-firefox-1.0.0.zip
- *   /data/workspaces/lzu-plugin/release/lzu-fulltext-firefox-1.0.0.xpi   （同一份 ZIP 的副本）
+ *   /data/workspaces/lzu-plugin/release/lzu-fulltext-chrome-<version>.zip
+ *   /data/workspaces/lzu-plugin/release/lzu-fulltext-firefox-<version>.zip
+ *   /data/workspaces/lzu-plugin/release/lzu-fulltext-firefox-<version>.xpi   （同一份 ZIP 的副本）
  *
  * 用法：node scripts/zip.mjs [chrome|firefox]
  */
@@ -13,7 +13,7 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
 const distRoot = path.join(root, 'dist');
 // extension/ → LZU-Thesis-CLI/ → lzu-plugin/（工作区根）
-const releaseDir = path.resolve(root, '..', '..', 'release');
+const DEFAULT_RELEASE_DIR = path.resolve(root, '..', '..', 'release');
 
 // ---------------------------------------------------------------- CRC32
 
@@ -178,7 +178,7 @@ async function walk(dir, base = dir, out = []) {
   return out;
 }
 
-async function pack(targetName) {
+async function packTarget(targetName, { releaseDir = null } = {}) {
   const dir = path.join(distRoot, targetName);
   try {
     await stat(dir);
@@ -197,13 +197,14 @@ async function pack(targetName) {
   const zip = buildZip(payload);
   const { names } = verifyZip(zip, payload.map((f) => f.name));
 
-  await mkdir(releaseDir, { recursive: true });
-  const zipPath = path.join(releaseDir, `lzu-fulltext-${targetName}-${manifest.version}.zip`);
+  const outDir = releaseDir || DEFAULT_RELEASE_DIR;
+  await mkdir(outDir, { recursive: true });
+  const zipPath = path.join(outDir, `lzu-fulltext-${targetName}-${manifest.version}.zip`);
   await writeFile(zipPath, zip);
 
   const outputs = [zipPath];
   if (targetName === 'firefox') {
-    const xpiPath = path.join(releaseDir, `lzu-fulltext-firefox-${manifest.version}.xpi`);
+    const xpiPath = path.join(outDir, `lzu-fulltext-firefox-${manifest.version}.xpi`);
     await copyFile(zipPath, xpiPath);
     outputs.push(xpiPath);
   }
@@ -217,6 +218,16 @@ async function pack(targetName) {
   return outputs;
 }
 
+export { buildZip, verifyZip, packTarget };
+
+const invokedDirectly = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(import.meta.dirname, 'zip.mjs');
+if (!invokedDirectly) {
+  // 被当成库 import 时（如 Firefox E2E 里现做 xpi）不要跑 CLI。
+} else {
+  await runCli();
+}
+
+async function runCli() {
 const only = process.argv.slice(2).find((a) => !a.startsWith('-'));
 const targets = only ? [only] : ['chrome', 'firefox'];
 for (const target of targets) {
@@ -226,5 +237,6 @@ for (const target of targets) {
   }
 }
 const all = [];
-for (const target of targets) all.push(...(await pack(target)));
+for (const target of targets) all.push(...(await packTarget(target)));
 console.log(`打包完成，共 ${all.length} 个文件。`);
+}

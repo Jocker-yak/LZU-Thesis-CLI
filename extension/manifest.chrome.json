@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "兰大论文全文助手",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "在已登录的浏览器里从兰州大学论文门户检索，并把阅读器渲染的学位论文页面合成为图片版 PDF 下载。",
   "minimum_chrome_version": "116",
   "icons": {
@@ -27,17 +27,33 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "downloads", "cookies", "offscreen"],
-  "host_permissions": ["http://202.201.7.17/*", "http://202.201.7.29/*"],
+  "permissions": [
+    "storage",
+    "downloads",
+    "cookies",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "http://202.201.7.17/*",
+    "http://202.201.7.29/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["http://202.201.7.29/*"],
-      "js": ["content-reader.js"],
+      "matches": [
+        "http://202.201.7.29/*"
+      ],
+      "js": [
+        "content-reader.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["http://202.201.7.17/*"],
-      "js": ["content-portal.js"],
+      "matches": [
+        "http://202.201.7.17/*"
+      ],
+      "js": [
+        "content-portal.js"
+      ],
       "run_at": "document_idle"
     }
   ]

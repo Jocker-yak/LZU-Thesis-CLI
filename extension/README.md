@@ -34,7 +34,7 @@ dist/firefox/     Firefox
 
 ### Firefox
 
-1. `npm run build` 后得到 `dist/firefox/`（或用 `release/lzu-fulltext-firefox-1.0.0.xpi`）；
+1. `npm run build` 后得到 `dist/firefox/`（或用 `release/lzu-fulltext-firefox-1.0.1.xpi`）；
 2. 地址栏打开 `about:debugging#/runtime/this-firefox`；
 3. 点「临时载入附加组件…」，选择 **`dist/firefox/manifest.json`**；
 4. 工具栏出现图标即成功。
@@ -113,13 +113,15 @@ npm run build          # 生成 dist/chrome 与 dist/firefox
 npm run package        # 生成 /data/workspaces/lzu-plugin/release/*.zip（Firefox 另有 .xpi）
 npm run icons          # 重新生成 assets/icons/*.png（纯 Node，无 Pillow 依赖）
 
-npm test               # = test:unit + test:integration（62 项，纯 Node，无需浏览器）
+npm test                    # = test:unit + test:integration（66 项，纯 Node，无需浏览器）
 npm run test:unit
 npm run test:integration
 
-npm run test:e2e       # Chrome 端到端：真浏览器 + 本地 mock 门户/阅读器
-npm run lint:firefox   # web-ext lint 检查 Firefox 清单/打包
-npm run smoke:live     # 只读冒烟：真实门户检索 + 令牌解码（不碰 .29）
+npm run test:e2e            # Chrome 端到端：真 Chromium + 本地 mock 门户/阅读器
+npm run test:e2e:firefox    # Firefox 端到端：真 Firefox（Marionette）+ 同一套 mock
+npm run test:all            # test + 两个浏览器 E2E
+npm run lint:firefox        # web-ext lint 检查 Firefox 清单/打包
+npm run smoke:live          # 只读冒烟：真实门户检索 + 令牌解码（不碰 .29）
 ```
 
 ### E2E 说明
@@ -141,7 +143,23 @@ npm run test:e2e -- --mode=docker
 # 可覆盖：LZU_E2E_SSH_CONFIG / LZU_E2E_SSH_HOST / LZU_E2E_REMOTE_DIR / LZU_E2E_IMAGE
 ```
 
-默认镜像 `mcr.microsoft.com/playwright:v1.64.1-noble`（自带 Chromium 与 Xvfb）。
+默认镜像 `mcr.microsoft.com/playwright:v1.64.1-noble`（自带 Chromium、Firefox 与 Xvfb）。
+
+### Firefox E2E（Marionette）
+
+Playwright 不支持给 Firefox 装扩展，所以 Firefox E2E 走的是 Firefox 自带的 **Marionette** 协议
+（`tests/e2e/lib/marionette.mjs` 是一个 200 行的零依赖客户端）：临时安装未签名 XPI →
+打开扩展页 → 从扩展页调 `runtime.sendMessage` 走完整检索/下载流程 →
+校验下载的 PDF。假域名用 Firefox 的 `network.dns.localDomains` 指到 `127.0.0.1`，
+mock 门户/阅读器共用 `127.0.0.1:80`（用 `Host` 头区分，见 `startMockWorld({ singlePort: true })`）。
+
+```bash
+npm run test:e2e:firefox               # 本机有 Firefox 就本地跑，否则走远程 Docker
+npm run test:e2e:firefox -- --mode=docker
+```
+
+同样支持 `LZU_E2E_SSH_CONFIG / LZU_E2E_SSH_HOST / LZU_E2E_REMOTE_DIR / LZU_E2E_IMAGE` 覆盖；
+本机跑可用 `LZU_FIREFOX_BIN=/path/to/firefox` 指定浏览器。
 
 ### 测试用的真实数据
 
@@ -189,6 +207,10 @@ node tests/fixtures/capture.mjs 牦牛
 * **必须能访问校内站点**：`202.201.7.29` 通常只在校内网可达；校外请先连 VPN。
   连不上时浮层/popup 会提示「阅读器 202.201.7.29 可能只在校内网可达」。
 * **需要登录/有权限**：门户部分记录没有全文入口（列表里显示「无全文入口」），插件不会也不该绕过。
+* **Firefox 走「页面内桥接」**：Firefox 把 `moz-extension://` 当安全上下文，扩展页/后台直接
+  `fetch('http://202.201.7.17/…')` 会被当**混合内容**拦截（`NetworkError`）。所以插件在门户/阅读器
+  页面里用 content script 发同源请求（带真实 cookie），后台只负责调度。装好扩展后**已经打开的旧标签页要刷新一次**，
+  content script 才会注入。
 * **令牌有时效**：`personaliiifServlet` 的令牌和页面令牌都是即时生成的，过期就重新点一次；
   失败重试是安全的（会重新注册）。
 * **请只在你有权访问的范围内使用**（本人可访问的馆藏 / 已获授权），不要批量转发。
@@ -200,6 +222,9 @@ node tests/fixtures/capture.mjs 牦牛
 | 下载被拦 / 无文件 | Chrome 设置里允许该扩展下载；或打开「下载时询问位置」再试 |
 | popup 显示「门户不可达」 | 不在校内网 / 门户维护；工具本身不重试门户连通性时请点「重新检测」 |
 | Firefox 重启后插件消失 | 临时载入的扩展重启即失效，重新 `about:debugging` 载入 |
+| Firefox 状态点是黄色（未检测） | Firefox 不允许扩展页直接探测 `http://` 站点；先在门户/阅读器打开一个标签页，再点「重新检测」 |
+| Firefox 报「桥接失败…Permission denied to access property "constructor"」 | 1.0.0 的 bug（content script 里 base64 用了跨 realm 的 `fromCharCode.apply`），1.0.1 已修复；刷新扩展与页面后重试 |
+| Chrome 156+ 下载/probe 行为异常 | 1.0.0 把 `globalThis.browser` 当 Firefox 判据，而 Chrome 156 也提供了该命名空间；1.0.1 改用 `runtime.getBrowserInfo` 判断 |
 | 任务显示「已中断（后台重启）」 | MV3 service worker 被回收；点一次重新下载即可 |
 
 ---
@@ -231,8 +256,13 @@ extension/
     panel.js                   shadow DOM 浮层
     reader.js / portal.js      两个站点的挂载
   src/ui/                      popup + 工作台（共用 shared-view.js）
-  scripts/                     build.mjs（esbuild）/ zip.mjs（自写 ZIP）/ make-icons.mjs / e2e.mjs
+  scripts/                     build.mjs（esbuild）/ zip.mjs（自写 ZIP）/ make-icons.mjs
+                               e2e.mjs（Chrome）/ e2e-firefox.mjs（Firefox）
   tests/                       unit / integration / e2e / mock / fixtures
+    e2e/chrome.mjs             Playwright 驱动 Chromium 加载扩展
+    e2e/firefox.mjs            Marionette 驱动 Firefox 临时安装 XPI
+    e2e/lib/marionette.mjs     零依赖 Marionette 客户端（装扩展 / chrome 上下文 / 执行脚本）
+    mock/servers.mjs           复刻门户与阅读器（支持 singlePort 模式给 Firefox 用）
 ```
 
 数据流（一次下载）：

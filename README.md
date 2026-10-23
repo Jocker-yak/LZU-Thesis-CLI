@@ -248,7 +248,8 @@ npm install && npm run build      # 产物：extension/dist/{chrome,firefox}
 
 * Chrome：`chrome://extensions/` → 开发者模式 → 「加载已解压的扩展程序」→ 选 `extension/dist/chrome`；
 * Firefox：`about:debugging#/runtime/this-firefox` → 「临时载入附加组件」→ 选 `extension/dist/firefox/manifest.json`；
-* 打包好的 zip / xpi 在 `release/` 下。
+* 打包好的 zip / xpi 在 `release/` 下；两个浏览器的端到端测试都在真浏览器里跑过
+  （`npm run test:e2e` / `npm run test:e2e:firefox`）。
 
 装上后点工具栏图标有使用说明（检索 / 令牌 / 直链三种入口）。
 插件与 CLI 共用同一套门户、阅读器与 DRM 令牌协议，Python 部分一行未改；

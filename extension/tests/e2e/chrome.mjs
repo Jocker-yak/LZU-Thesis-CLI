@@ -165,12 +165,15 @@ async function main() {
     record('拿到 MV3 service worker', true, `${extId}`);
 
     await step('manifest 与实际运行一致', async () => {
+      // 期望值从构建产物 dist/<target>/manifest.json 读，避免发版改版本号后这里写成硬编码。
+      const expected = JSON.parse(await readFile(path.join(extensionDir, 'manifest.json'), 'utf8'));
       const info = await sw.evaluate(() => {
         const m = chrome.runtime.getManifest();
         return { name: m.name, version: m.version, mv: m.manifest_version, permissions: m.permissions };
       });
       if (info.mv !== 3) throw new Error(`manifest_version=${info.mv}`);
-      if (info.version !== '1.0.0') throw new Error(`version=${info.version}`);
+      if (info.version !== expected.version) throw new Error(`version=${info.version}（期望 ${expected.version}）`);
+      if (info.name !== expected.name) throw new Error(`name=${info.name}`);
       return `${info.name} v${info.version}（MV${info.mv}，权限 ${info.permissions.join(',')}）`;
     });
 

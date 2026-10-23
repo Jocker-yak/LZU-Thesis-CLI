@@ -41,14 +41,33 @@ export function base64ToBytes(text) {
   return out;
 }
 
-/** Uint8Array -> base64。 */
+/**
+ * Uint8Array -> base64。
+ *
+ * 逐字节查表，不用 btoa 配合 fromCharCode 批量转换：
+ * Firefox 的 content script 沙箱里把 TypedArray 传给 `Function.prototype.apply`
+ * 会抛 `Permission denied to access property "constructor"`（Chrome 不会），
+ * 而 protocol.js 会被打进 content script（bridge 里用到 fid 解析等）。
+ */
 export function bytesToBase64(bytes) {
-  let bin = '';
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const parts = [];
+  let chunk = '';
+  for (let i = 0; i < arr.length; i += 3) {
+    const b0 = arr[i];
+    const b1 = i + 1 < arr.length ? arr[i + 1] : 0;
+    const b2 = i + 2 < arr.length ? arr[i + 2] : 0;
+    chunk += B64_ALPHABET[b0 >> 2]
+      + B64_ALPHABET[((b0 & 0x03) << 4) | (b1 >> 4)]
+      + (i + 1 < arr.length ? B64_ALPHABET[((b1 & 0x0f) << 2) | (b2 >> 6)] : '=')
+      + (i + 2 < arr.length ? B64_ALPHABET[b2 & 0x3f] : '=');
+    if (chunk.length >= 0x8000) {
+      parts.push(chunk);
+      chunk = '';
+    }
   }
-  return btoa(bin);
+  if (chunk) parts.push(chunk);
+  return parts.join('');
 }
 
 /**

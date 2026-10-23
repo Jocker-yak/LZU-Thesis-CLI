@@ -17,6 +17,7 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { PORTAL_ORIGIN, READER_ORIGIN } from '../../src/lib/protocol.js';
 
 const FIXTURES = path.resolve(import.meta.dirname, '..', 'fixtures');
 
@@ -97,7 +98,7 @@ export async function startMockWorld(opts = {}) {
   state.linkHref = captured.linkHref;
 
   // ---------------------------------------------------------------- 阅读器
-  const readerServer = http.createServer(async (req, res) => {
+  const readerHandler = async (req, res) => {
     const url = new URL(req.url, `http://${readerHost}`);
     state.requests.push(`reader ${req.method} ${url.pathname}${url.search}`);
     const cookies = parseCookies(req);
@@ -184,13 +185,10 @@ ${metaHtml}
 
     res.writeHead(404, { 'content-type': 'text/html;charset=utf-8' });
     res.end('<html>404</html>');
-  });
-  await listen(readerServer, readerHost, opts.readerPort ?? 0);
-  const readerPort = readerServer.address().port;
-  const readerUrl = `http://${readerHost}:${readerPort}`;
+  };
 
   // ---------------------------------------------------------------- 门户
-  const portalServer = http.createServer(async (req, res) => {
+  const portalHandler = async (req, res) => {
     const url = new URL(req.url, `http://${portalHost}`);
     state.requests.push(`portal ${req.method} ${url.pathname}${url.search}`);
 
@@ -232,17 +230,45 @@ ${metaHtml}
 
     res.writeHead(404, { 'content-type': 'text/html;charset=utf-8' });
     res.end('<html>404</html>');
-  });
-  await listen(portalServer, portalHost, opts.portalPort ?? 0);
-  const portalPort = portalServer.address().port;
-  const portalUrl = `http://${portalHost}:${portalPort}`;
+  };
+
+  // 两个假域名各自监听（集成测试默认）：直接 127.0.0.1:随机端口。
+  // singlePort 模式（Firefox E2E）：network.dns.localDomains 只能把域名指到本机、
+  // 改不了端口，所以两个域名共用 127.0.0.1:80，用 Host 头区分。
+  let portalServer;
+  let readerServer;
+  let portalUrl;
+  let readerUrl;
+  if (opts.singlePort) {
+    const dispatcher = http.createServer((req, res) => {
+      const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+      const isReader = host === new URL(READER_ORIGIN).hostname.toLowerCase();
+      Promise.resolve((isReader ? readerHandler : portalHandler)(req, res)).catch((err) => {
+        try { res.writeHead(500, { 'content-type': 'text/plain;charset=utf-8' }); } catch { /* ignore */ }
+        res.end(String(err));
+      });
+    });
+    await listen(dispatcher, opts.host || '127.0.0.1', opts.port ?? 80);
+    portalServer = dispatcher;
+    readerServer = dispatcher;
+    portalUrl = PORTAL_ORIGIN;
+    readerUrl = READER_ORIGIN;
+  } else {
+    portalServer = http.createServer(portalHandler);
+    await listen(portalServer, portalHost, opts.portalPort ?? 0);
+    readerServer = http.createServer(readerHandler);
+    await listen(readerServer, readerHost, opts.readerPort ?? 0);
+    portalUrl = `http://${portalHost}:${portalServer.address().port}`;
+    readerUrl = `http://${readerHost}:${readerServer.address().port}`;
+  }
 
   return {
     portalUrl,
     readerUrl,
     state,
     close: async () => {
-      await Promise.all([closeServer(portalServer), closeServer(readerServer)]);
+      const servers = new Set([portalServer, readerServer]);
+      await Promise.all([...servers].map(closeServer));
     },
   };
 }

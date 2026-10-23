@@ -92,7 +92,7 @@ async function runDocker() {
   await mkdir(path.join(root, 'tests', 'e2e', 'out'), { recursive: true });
   console.log(`同步 extension/ → ${SSH_HOST}:${REMOTE_DIR}（排除 node_modules 之外的大件也没必要，直传）…`);
   run(
-    `tar -C ${root} -czf - . `
+    `tar -C ${root} --exclude=./tests/e2e/out --exclude='./tests/e2e/out/*' -czf - . `
     + `| ssh -F ${SSH_CONFIG} ${SSH_HOST} 'mkdir -p ${REMOTE_DIR} && tar -C ${REMOTE_DIR} -xzf -'`,
   );
 
