@@ -1,0 +1,8 @@
+# 依赖与构建产物（用 npm install / npm run build 重新生成）
+node_modules/
+dist/
+
+# 测试产物
+_tmp/
+tests/e2e/out/
+.npm-cache/

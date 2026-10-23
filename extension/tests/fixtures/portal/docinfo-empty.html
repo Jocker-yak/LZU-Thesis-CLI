@@ -1,0 +1,718 @@
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="Referrer" content="origin" />
+<title>查看论文信息</title><!--查看论文信息  -->
+<link rel="stylesheet" type="text/css" href="style/public.css"/>
+<link rel="stylesheet" type="text/css" href="style/daoshi.css"/>
+<script type="text/javascript" src="js/jquery-3.6.0.js"></script>
+<script type="text/javascript">
+$(document).ready(function(e) {
+     var $win_w=$(window).width();
+     if($win_w>1000)
+     {
+		var $nav_meun_r=($win_w-840)/2-70;
+		$(".nav_meun").css("right",$nav_meun_r);
+	 }else
+	 {
+		$(".nav_meun").css("right",0);
+	 }
+ });
+$(function(){
+
+	$(window).scroll(function(e) {
+        var win_top=$(window).scrollTop();
+		if(win_top>0){
+			$(".return_top").show();
+			}else{
+			$(".return_top").hide();
+			}
+    });
+	$(".return_top").click(function(){
+		$("body,html").animate({scrollTop:0},300);
+		return false;
+		})
+		
+	$("div.consult p").last().css("border","none");
+	$("div.consult").each(function(){ 
+	  var conhieght=$(this).height();
+	  if(conhieght>250){
+		$(this).addClass("H250");
+		}
+		else{
+		$(this).siblings("a.unfold_btn_2").hide();
+		}
+
+	})
+
+	$(".unfold_btn_2").click(function() {
+       if($(this).siblings("div.consult").hasClass("H250")){
+		   	$(this).siblings("div.consult").removeClass("H250");
+		   	$(this).html("︿"); //收起
+			$(this).siblings(".unfold_btn_1").show();
+		   }else{
+			$(this).siblings("div.consult").addClass("H250");
+		   	$(this).html("﹀"); //展开
+			$(".unfold_btn_1").hide();
+			}
+    }); 
+	$(".unfold_btn_1").click(function() {
+			$(this).siblings("div.consult").addClass("H250");
+			$(this).hide();
+			$(".unfold_btn_2").html("﹀"); //展开
+    });
+		
+		
+		
+})
+
+
+function docinfo(id1, id2){
+	$("#id1").val(id1);	
+	$("#id2").val(id2);	
+	$("#docinfo_form").submit();
+}
+</script>
+</head>
+<body>
+-<!---------header-------->
+
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>无标题文档</title>
+<link rel="stylesheet" type="text/css" href="style/public.css"/>
+<link rel="stylesheet" type="text/css" href="style/subject.css"/>
+<script type="text/javascript" src="js/search.js"></script>
+<script type="text/javascript" src="js/changelg.js"></script>
+</head>
+
+<body>
+ 
+
+<!---------header-------->
+<input type="hidden" value="chi" id="languagetype"/>
+<div class="header">
+	<div class="nav">
+    	<a href="index.action">
+    	<div class="logo">
+    	<img src="images/logo.jpg" />
+    	<div class="name">兰州大学学位论文管理系统</div>
+    	
+    	</div>
+    	</a>
+        
+    	  
+   	      
+   	    
+        
+    	
+    	<ul>
+  	        
+    	    
+    	    
+    	    
+    	    
+    	    
+   	        
+    	    
+    	      
+    	    
+    	    
+    	    
+    	    
+     	    
+     	    
+     	    
+     	    
+     
+         	<li class="on"><a href="index.action">首页</a></li>
+            <li class=""><a href="classbrowse.action?curtaxid=2">学科导航</a></li> <!--学科导航  -->
+             
+            <li class=""><a href="yxds_browse.action">分类浏览</a></li>  <!--分类浏览  -->
+            <li class=""><a href="hotdoclist.action">点击排行</a></li> <!-- 点击排行 -->
+            <li class=""><a href="https://xwlw.lzu.edu.cn/cas-lzu/lzu/login">论文提交</a></li> <!-- 论文提交 -->
+            <li class=""><a href="faqlist.action">FAQ</a></li>
+            
+            
+    	    
+        </ul>
+         
+    </div>
+</div>
+
+
+
+
+</body>
+</html>
+ 
+
+
+
+<div style="height:100px;"></div>
+<div class="context">
+	<div class="nav_meun">
+        
+    	<div class="next btn">
+        	<a onclick="docinfo('0cc06bd68190965d2cbf1c20e828b25a','Uc3Q9KsudNo%253D')">下一篇</a>
+        </div>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        <div class="return_top btn" style="display:none;">
+        	<a href="#">返回顶部</a>
+        </div>
+    </div>
+
+
+
+    <div class="thesis_context"><!------院系----->
+     	<div class="right_top">
+          	<span style="float:left;">查看论文信息</span>
+          
+            
+            
+              <!-- <div class="pdf_down"><a href="http://202.201.7.29/pdfReader/FoxitReader_chs_Setup.exe">小麦阅读器下载</a></div> --><!-- 阅读器下载 -->
+            
+          
+          	
+            
+        </div>
+        <div class="con">
+        	<h2></h2>
+            <table cellpadding="0" cellspacing="0" border="0">
+                
+                
+            	<tr>
+                	<td class="left">题名：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">题名(外文)：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;Spatiotemporal variation in diet selection of grazing yak and its effects on gut microbiota&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">作者：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;<a href='simpsearch.action?keyword=%25E7%2584%25A6%25E5%25BB%25BA%25E9%2591%25AB&sfield=author'>焦建鑫</a>&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">学号：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;120210906671&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">语种：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;chi&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">保密级别：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;公开&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">学科：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;理学 - 生态学 - 动物生态学&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">学生类型：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;博士&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">学位：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;理学博士&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">学校：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;兰州大学&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">院系：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;<a href='simpsearch.action?keyword=%25E7%2594%259F%25E6%2580%2581%25E5%25AD%25A6%25E9%2599%25A2&sfield=department'>生态学院</a>&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">专业：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;<a href='simpsearch.action?keyword=%25E7%2594%259F%25E6%2580%2581%25E5%25AD%25A6&sfield=specialty'>生态学</a>&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+                
+                
+            	<tr>
+                	<td class="left">导师姓名：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;<a href='simpsearch.action?keyword=侯扶江&sfield=teacher_name'>侯扶江</a>&nbsp;&nbsp;&nbsp;&nbsp;
+						  
+					<!--	  <a style="float:right;margin-right:20px;" href="http://ir.lib.ruc.edu.cn/Scholar/ScholarCard/" target="_blank">导师信息</a>   -->
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+                
+                
+            	<tr>
+                	<td class="left">入学年份：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;2021&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">完成日期：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;2026-06-03&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">答辩日期：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;2026-05-23&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">关键词(中文)：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;<a href='simpsearch.action?keyword=%25E7%2589%25A6%25E7%2589%259B&sfield=all'>牦牛</a> ; <a href='simpsearch.action?keyword=%25E5%25AD%25A3%25E8%258A%2582&sfield=all'>季节</a> ; <a href='simpsearch.action?keyword=%25E5%258C%25BA%25E5%259F%259F&sfield=all'>区域</a> ; <a href='simpsearch.action?keyword=%25E9%25A3%259F%25E6%2580%25A7%25E9%2580%2589%25E6%258B%25A9&sfield=all'>食性选择</a> ; <a href='simpsearch.action?keyword=%25E8%2582%25A0%25E9%2581%2593%25E5%25BE%25AE%25E7%2594%259F%25E7%2589%25A9&sfield=all'>肠道微生物</a>&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">关键词(外文)：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;<a href='simpsearch.action?keyword=Yak&sfield=all'>Yak</a> ; <a href='simpsearch.action?keyword=Season&sfield=all'>Season</a> ; <a href='simpsearch.action?keyword=Region&sfield=all'>Region</a> ; <a href='simpsearch.action?keyword=Diet%2Bselection&sfield=all'>Diet selection</a> ; <a href='simpsearch.action?keyword=%2BGut%2Bmicrobiota&sfield=all'> Gut microbiota</a>&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">摘要（中文）：</td>
+                	
+                	    <!-- 参考文献 或 目录 或文摘-->
+             	         
+             	         
+						 
+             	         
+             	         <td class="right" >
+                	        <a class="unfold_btn_1" style="display:none;">︿</a><!-- 收起 -->
+                    	    <div class="consult" style="clear:both;word-break:break-all;">
+               	      
+                	         <p>揭示草食动物食性选择与肠道微生物组成对宿主健康、营养代谢、生态适应及放牧管理与草地生态畜牧业转型升级等具有重要意义。草食动物面对植物资源时空异质性分布表现出不同的食性选择策略，进而影响肠道微生物对不同植物源营养底物的利用，并参与宿主营养转化与获取过程。牦牛（Bos grunniens）作为青藏高原典型的大型草食性家畜，在长期适应高寒低氧及饲草营养季节性波动的环境过程中，形成了独特的食性选择策略与肠道微生物组结构特征。然而，作为全球变化的敏感区域，青藏高原高寒草地生态系统正经历剧烈环境演变，草地植被群落组成与养分特征呈现出更复杂的时空异质性差异，饲草资源时空供给格局也随之发生变化。在此背景下，放牧牦牛是否通过调整食性选择策略响应饲草资源变化，以及肠道微生物组成与功能如何随之发生协同变化，尚缺乏跨季节、跨区域尺度的系统研究。因此，本研究以放牧牦牛为研究对象，在跨时空尺度下选择青藏高原典型牧区甘肃玛曲县、四川红原县和西藏聂荣县放牧草地为研究区域，基于草地生态学、动物生态学和动物营养学理论，结合DNA宏条形码和宏基因组等分子生物学技术，系统解析不同区域放牧草地植被群落及养分的季节性动态特征，以及放牧牦牛食性选择与肠道微生物组成及其功能特征。旨在揭示放牧牦牛在饲草资源时空异质性驱动下，其食性选择策略与肠道微生物协同互作机制，为优化放牧牦牛饲养管理技术与模式和促进高寒草地生态畜牧业可持续发展提供科学支撑。主要研究结果如下：</p>
+
+<p>（1）放牧草地植被特征及养分含量在时空尺度上均表现出显著差异。植被群落特征方面，玛曲春季放牧草地以垂穗披碱草（Elymus nutans）型为主，记录79种植物，隶属于25科60属；夏季以草玉梅（Anemone rivularis）型为主，记录120种植物，隶属于28科77属；秋季以紫羊茅（Festuca rubra）型为主，记录109种植物，隶属于26科69属；冬季以禾叶嵩草（Kobresia graminifolia）型为主，记录80种植物，隶属于23科58属，四个季节草地地上植物量（DM）分别为435、1732、1330和948 kg/ha。红原春季放牧草地以四川嵩草（Kobresia setchwanensis）型为主，记录101种植物，隶属于27科70属；夏季以垂穗披碱草型为主，记录119种植物，隶属于32科79属；秋冬季均以四川嵩草型为主，分别记录95和64种植物，隶属于25科70属和19科48属，其干物质产量分别为614、1646、1407和1121 kg/ha。聂荣春夏秋季放牧草地均以高山嵩草（Kobresia pygmaea）型为主，部分沟谷地区为西藏嵩草（Kobresia tibetica）型草地（主要为冬季放牧区）。其中春季记录56种植物，隶属于16科37属；夏季80种植物，隶属于22科49属；秋季65种植物，隶属于20科41属；冬季36种植物，隶属于14科29属。其干物质产量分别为351、783、580和681 kg/ha。各研究区夏季放牧草地盖度及植物多样性显著高于其它季节（P &lt; 0.05）；聂荣植物多样性显著低于其它研究区（P &lt; 0.05）。牧草养分特征方面，春季牧草粗蛋白（CP）含量整体较高（P &lt; 0.05），冬季牧草中性洗涤纤维（NDF）和酸性洗涤纤维（ADF）含量整体较高（P &lt; 0.05），聂荣研究区牧草的NDF和ADF含量整体高于红原和玛曲研究区（P &lt; 0.05）。</p>
+
+<p>（2）放牧牦牛食性选择呈现显著的时空分布格局，且季节（时间）因素对食性选择的影响大于区域（空间）因素。植物科水平相对序列丰度显示，蔷薇科（Rosaceae）与蓼科（Polygonaceae）植物是牦牛食谱中的核心来源，其中蔷薇科植物在红原和玛曲研究区全年均被频繁采食，在聂荣研究区主要集中于夏、秋和冬季；蓼科植物在聂荣研究区牦牛春夏季食谱中占据绝对优势。基于常见植物属水平分析，蓼属（Polygonum）植物在不同季节和区域均被持续选择，苔草属（Carex）和委陵菜属（Potentilla）在玛曲和红原被持续选择，山莓草属（Sibbaldia）在聂荣被持续选择。在资源利用策略方面上，春季牦牛食性生态位宽度最低；玛曲和红原研究区放牧牦牛表现出较高个体特化水平，其食性生态位季节性扩张主要由牦牛个体间采食分化增强驱动，与生态位变异假说预测一致；而聂荣研究区生态位扩张则主要由牦牛个体内资源利用范围扩大驱动，与最优觅食理论预测一致。</p>
+
+<p>（3）放牧牦牛肠道微生物组成与功能呈现显著的时空分化格局，且区域（空间）因素对肠道菌群的塑造作用大于季节（时间）因素。区域尺度上，春季识别出区域性标记微生物物种数量最多，不同研究区分别富集不同优势菌群，其中玛曲以Bacteroides、Prevotella和Methanosphaera等为主，红原以Faecalibacterium和Methanosarcina等为主，聂荣四季均显著富集Clostridium、Romboutsia和Methanobrevibacter等。季节尺度上，聂荣牦牛肠道细菌季节性标记数量最多，红原则古菌季节性标记数量最多；Bacteroides为所有区域春季主要标记菌属。网络分析表明，肠道细菌群落以正相关协同互作为主要特征，网络复杂性在夏季较高；古菌群落结构相对稳定，网络核心主要由Methanobrevibacter和Methanosarcina等核心产甲烷菌属构成。功能水平上，肠道微生物春季富集的CAZyme酶、ko和代谢通路数量均高于其它季节，主要集中于碳水化合物、能量、氨基酸与核苷酸生物合成等基础代谢通路。区域差异表明，聂荣牦牛肠道四季均持续富集甲烷代谢通路。肠型分析表明，放牧牦牛肠道微生物呈现稳定的二元分型结构，主要由Bacteroides和Methanobrevibacter主导。Bacteroides肠型在春夏季及玛曲、红原显著富集（P &lt; 0.05），主要参与淀粉、糖原和纤维素降解、TCA循环、甘氨酸、丝氨酸与苏氨酸代谢、烟酸与烟酰胺代谢合成以及叶酸循环代谢等通路。Methanobrevibacter肠型在秋冬季及聂荣显著富集（P &lt; 0.05），主要参与甲烷代谢、维生素B<sub>12</sub>辅酶合成及血红素前体合成等通路。</p>
+
+<p>（4）放牧牦牛食性选择与肠道微生物对植被时空异质性分布的响应机制。植物多样性对放牧牦牛食物组分多样性的影响显著依赖于季节变化。春季和冬季植物丰富度与牦牛食物组分丰富度呈显著正相关（P &lt; 0.05），而夏秋季呈相反趋势（P &lt; 0.05），揭示在资源相对丰富的夏秋季节，牦牛表现出更强的&ldquo;选择性采食&rdquo;策略。Shannon多样性结果显示，除春季外，其它季节植物多样性与牦牛食物组分多样性均呈显著负相关（P &lt; 0.05），且负向效应逐渐增强，揭示在资源逐渐有限的季节（夏-秋-冬），牦牛采食策略由&ldquo;主动性择食&rdquo;向&ldquo;被动性泛食&rdquo;转变，以应对季节性资源波动。普氏分析（Procrustes analysis）表明放牧牦牛食物组分与肠道微生物在季节与区域变化中呈显著相关（P &lt; 0.05）。肠道微生物功能变化受部分优势菌属驱动，主要包括Prevotella、Ruminococcus、Alistipes、Blautia、Romboutsia、Methanobrevibacter和Methanomethylophilus等。植物养分对肠道微生物碳水化合物、辅因子与维生素、氨基酸以及能量代谢通路的影响最大。</p>
+
+<p>综上所述，高寒草地植物资源的时空异质性是驱动放牧牦牛食性选择与肠道微生物变化的关键生态因素。牦牛通过调整食性选择策略适应不同季节和区域的植物资源，进一步引起肠道微生物组成、互作网络及代谢功能的协同变化。春季高营养牧草促进肠道微生物碳水化合物降解及基础代谢活性增强，而聂荣地区长期高纤维底物则促进产甲烷菌及甲烷代谢通路持续富集，表明不同生态条件塑造了差异化的宿主-微生物适应模式。其次，Bacteroides与Methanobrevibacter主导的肠型结构，反映了牦牛肠道微生物对不同营养资源利用策略的功能分化。总体上，植物资源变化通过影响牦牛食性选择，进一步调控肠道微生物组成与功能代谢，形成&ldquo;植物资源-食性选择-肠道微生物-代谢功能&rdquo;之间的协同适应机制。本研究从跨时空尺度揭示了高寒环境下放牧牦牛对资源波动的营养适应规律，可为高寒草地放牧家畜精准补饲、放牧管理优化及生态畜牧业可持续发展提供理论依据和数据支撑。</p>
+
+                	       </div>
+                	       <a class="unfold_btn_2">﹀</a><!-- 展开 -->
+                	      </td>
+                 	   
+                 	   
+                	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">摘要（外文）：</td>
+                	
+                	   
+                 	   
+                 	   		<td class="right" >
+                	        <a class="unfold_btn_1" style="display:none;">︿</a><!-- 收起 -->
+                    	    <div class="consult" style="clear:both;word-break:keep-all;">
+               	      
+                	         <p>Revealing the relationships between herbivore diet selection and gut microbial composition is of great significance for host health, nutrient metabolism, ecological adaptation, grazing management, and the transformation and upgrading of grassland ecological animal husbandry. In response to the spatiotemporally heterogeneous distribution of plant resources, herbivores adopt diverse diet selection strategies, which in turn influence the utilization of plant-derived nutrient substrates by gut microbiota and participate in host nutrient transformation and acquisition. The yak (Bos grunniens), a typical large herbivorous livestock species on the Qinghai-Xizang Plateau, has evolved distinctive diet selection strategies and gut microbiome structural characteristics through long-term adaptation to the alpine, hypoxic environment with pronounced seasonal fluctuations in forage nutrient availability. However, as a sensitive region under global change, the alpine grassland ecosystem of the Qinghai-Xizang Plateau is undergoing dramatic environmental changes, leading to increasingly complex spatiotemporal heterogeneity in vegetation community composition and nutrient characteristics, accompanied by concomitant shifts in the spatiotemporal supply patterns of forage resources. Against this background, whether grazing yaks adjust their diet selection strategies in response to forage resource variability, and how gut microbial composition and function co-vary accordingly, remain insufficiently elucidated through systematic, cross-seasonal and cross-regional investigations. Therefore, this study took grazing yaks as the research subject and selected representative pastoral areas on the Qinghai-Xizang Plateau, namely Maqu County (Gansu), Hongyuan County (Sichuan), and Nierong County (Xizang), as study regions across spatiotemporal scales. Grounded in the theories of grassland ecology, animal ecology, and animal nutrition, and integrating molecular biology techniques such as DNA metabarcoding and metagenomics, this study systematically examined the seasonal dynamics of vegetation community and nutrient characteristics in different regional grazing grasslands, as well as the diet composition, gut microbial community structure, and functional profiles of grazing yaks. The objectives were to elucidate the synergistic interaction mechanisms between diet selection strategies and gut microbiota of grazing yaks driven by the spatiotemporal heterogeneity of forage resources, and to provide scientific support for optimizing feeding management techniques and models for grazing yaks and promoting the sustainable development of alpine grassland ecological animal husbandry. The main results are as follows:</p>
+
+<p>1. Vegetation characteristics and nutrient contents of grazing grasslands exhibited significant differences at both spatial and temporal scales. In terms of vegetation community characteristics, the spring grazing grassland in Maqu was dominated by Elymus nutans, with 79 plant species recorded, belonging to 25 families and 60 genera; the summer grassland was dominated by Anemone rivularis, with 120 species recorded, belonging to 28 families and 77 genera; the autumn grassland was dominated by Festuca rubra, with 109 species recorded, belonging to 26 families and 69 genera; and the winter grassland was dominated by Kobresia graminifolia, with 80 species recorded, belonging to 23 families and 58 genera. The aboveground plant biomass (dry matter, DM) of the four seasons was 435, 1732, 1330, and 948 kg/ha, respectively. In Hongyuan, the spring grazing grassland was dominated by Kobresia setchwanensis, with 101 species recorded, belonging to 27 families and 70 genera; the summer grassland was dominated by Elymus nutans, with 119 species recorded, belonging to 32 families and 79 genera; both autumn and winter grasslands were dominated by Kobresia setchwanensis, with 95 and 64 species recorded, belonging to 25 families and 70 genera and 19 families and 48 genera, respectively, and their DM yields were 614, 1646, 1407, and 1121 kg/ha, respectively. In Nierong, the spring, summer, and autumn grazing grasslands were all dominated by Kobresia pygmaea, while some valley areas featured Kobresia tibetica-dominated grasslands (mainly used as winter grazing areas). In spring, 56 species were recorded, belonging to 16 families and 37 genera; in summer, 80 species, belonging to 22 families and 49 genera; in autumn, 65 species, belonging to 20 families and 41 genera; and in winter, 36 species, belonging to 14 families and 29 genera. Their DM yields were 351, 783, 580, and 681 kg/ha, respectively. Across all study regions, summer grazing grasslands showed significantly higher vegetation coverage and plant diversity than those in other seasons (P &lt; 0.05); plant diversity in Nierong was significantly lower than that in the other study regions (P &lt; 0.05). Regarding forage nutrient characteristics, crude protein (CP) content was generally higher in spring forage (P &lt; 0.05), whereas neutral detergent fiber (NDF) and acid detergent fiber (ADF) contents were generally higher in winter forage (P &lt; 0.05). The NDF and ADF contents of forage in the Nierong region were overall higher than those in the Hongyuan and Maqu regions (P &lt; 0.05).</p>
+
+<p>2. The diet selection of grazing yaks exhibited pronounced spatiotemporal patterns, with seasonal (temporal) effects exerting a stronger influence on dietary composition than regional (spatial) effects. At the plant family level, relative sequence abundance revealed that Rosaceae and Polygonaceae constituted the core components of yak diets. Rosaceae plants were consistently foraged throughout the year in the Hongyuan and Maqu regions, while in Nierong they were predominantly consumed in summer, autumn, and winter. Polygonaceae plants dominated yak diets during spring and summer in Nierong. At the genus level of common plants, Polygonum was persistently selected across seasons and regions; Carex and Potentilla were continuously selected in Maqu and Hongyuan, whereas Sibbaldia was steadily selected in Nierong. Regarding resource utilization strategies, dietary niche breadth of yaks was narrowest in spring. Yaks in Maqu and Hongyuan showed a high level of individual specialization, with seasonal niche expansion driven primarily by increased among-individual diet differentiation, consistent with the predictions of the niche variation hypothesis. In contrast, niche expansion in Nierong was mainly driven by the widening of within-individual resource use breadth, in accordance with the optimal foraging theory.</p>
+
+<p>3. The gut microbial composition and function of grazing yaks displayed significant spatiotemporal differentiation, and regional (spatial) factors had a greater shaping effect on the gut microbiota than seasonal (temporal) factors. At the regional scale, the highest number of regionally discriminant microbial taxa was identified in spring, with different study areas enriched in distinct dominant microbial groups. Specifically, Maqu was primarily enriched in Bacteroides, Prevotella, and Methanosphaera; Hongyuan in Faecalibacterium and Methanosarcina; and Nierong was consistently enriched across all four seasons in Clostridium, Romboutsia, and Methanobrevibacter. At the seasonal scale, Nierong harbored the highest number of season-specific bacterial markers, whereas Hongyuan had the highest number of season-specific archaeal markers. Bacteroides served as the predominant biomarker genus in spring across all regions. Network analysis showed that the gut bacterial community was characterized predominantly by positive co-occurrence interactions, with network complexity peaking in summer. The archaeal community exhibited a relatively stable structure, with the network core mainly composed of key methanogenic genera such as Methanobrevibacter and Methanosarcina. At the functional level, the numbers of enriched CAZymes, KOs, and metabolic pathways in gut microbiota were all higher in spring than in other seasons, primarily concentrated in fundamental metabolic pathways including carbohydrate, energy, amino acid, and nucleotide biosynthesis. Regionally, the gut microbiota of yaks in Nierong was persistently enriched in methane metabolism pathways across all four seasons. Enterotype analysis revealed a stable dichotomous enterotype structure in grazing yaks, dominated by Bacteroides and Methanobrevibacter. The Bacteroides enterotype was significantly enriched in spring and summer and in the Maqu and Hongyuan regions (P &lt; 0.05), and was involved mainly in starch, glycogen, and cellulose degradation, the TCA cycle, glycine, serine and threonine metabolism, nicotinate and nicotinamide metabolism and biosynthesis, and the folate cycle. The Methanobrevibacter enterotype was significantly enriched in autumn and winter and in the Nierong region (P &lt; 0.05), and primarily participated in methane metabolism, vitamin B<sub>12</sub> coenzyme biosynthesis, and heme precursor biosynthesis.</p>
+
+<p>4. The response mechanisms of yak diet selection and gut microbiota to spatiotemporally heterogeneous vegetation. The influence of plant diversity on the dietary component diversity of grazing yaks significantly depended on seasonal variation. Plant species richness was significantly positively correlated with dietary component richness of yaks in spring and winter (P &lt; 0.05), whereas an inverse trend was observed in summer and autumn (P &lt; 0.05), revealing that yaks exhibited a stronger &quot;selective foraging&quot; strategy during summer and autumn when resources were relatively abundant. The Shannon diversity results showed that, except in spring, plant diversity was significantly negatively correlated with yak dietary component diversity in all other seasons (P &lt; 0.05), and the negative effect progressively intensified across seasons, indicating a shift in yak foraging strategy from &quot;active selective feeding&quot; to &quot;passive generalist feeding&quot; in response to the gradually declining resource availability from summer to autumn and winter. Procrustes analysis demonstrated a significant correlation between dietary components and gut microbial composition of grazing yaks across seasons and regions (P &lt; 0.05). Changes in gut microbial functions were driven by several dominant genera, including Prevotella, Ruminococcus, Alistipes, Blautia, Romboutsia, Methanobrevibacter, and Methanomethylophilus. Among plant nutrients, forage nutrient characteristics exerted the greatest influence on gut microbial pathways related to carbohydrate metabolism, cofactor and vitamin metabolism, amino acid metabolism, and energy metabolism.</p>
+
+<p>In summary, the spatiotemporal heterogeneity of plant resources in alpine grasslands is a key ecological factor driving changes in diet selection and gut microbiota of grazing yaks. Yaks adapt to seasonal and regional variability in plant resources by adjusting their diet selection strategies, which further induces coordinated shifts in gut microbial composition, interaction networks, and metabolic functions. In spring, high-quality forage promotes enhanced carbohydrate degradation and elevated basal metabolic activity of the gut microbiota, whereas the persistently high-fiber substrate in the Nierong region leads to the sustained enrichment of methanogens and methane metabolism pathways, indicating that distinct ecological conditions have shaped divergent host&ndash;microbe adaptation patterns. Moreover, the enterotype structure dominated by Bacteroides and Methanobrevibacter reflects functional differentiation in the gut microbial strategies for utilizing different nutritional resources. Overall, changes in plant resources, by influencing yak diet selection, further regulate gut microbial composition and metabolic functions, forming a synergistic adaptation mechanism of &quot;plant resources &ndash; diet selection &ndash; gut microbiota &ndash; metabolic functions.&quot; Across spatiotemporal scales, this study elucidates the nutritional adaptation patterns of grazing yaks to resource fluctuations in alpine environments, thereby providing a theoretical basis and data support for precise supplementary feeding of grazing livestock, optimization of grazing management, and the sustainable development of ecological animal husbandry on alpine grasslands.</p>
+
+                	       </div>
+                	       <a class="unfold_btn_2">﹀</a><!-- 展开 -->
+                	      </td>
+                 	   
+                	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">论文参考文献总数：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;313&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">论文总页数：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;195&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">中图分类号：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;Q14&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">馆藏号：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;262010_120210906671&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+                
+            	<tr>
+                	<td class="left">开放日期：</td>
+                	
+                	   
+                 	   
+                	   
+                 	      <td class="right" ><p>&nbsp;2026-12-22&nbsp;&nbsp;&nbsp;&nbsp;
+						   <div style="clear:both;"></div></p> </td>
+                   	   
+                	
+                   
+                </tr>
+                
+                
+             </table>
+        </div>
+    </div>
+    <div style="clear:both;"></div>
+</div>
+<div style="height:30px;"></div>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>无标题文档</title>
+<style>
+.footerGroup{
+	width:100%;position:fixed;bottom:0;left:0;min-wdith:1200px;margin:0 auto;
+	height: 60px;
+padding-bottom:12px;
+	position: relative;
+	background: url(../images/footer_bg.jpg) center no-repeat;
+background-size:cover;
+}
+.footer1{
+	width: 100%;
+	
+}
+.footer1 .footer_con {
+    width: 1000px;
+    text-align: center;
+    margin: 0 auto;
+    font-size: 14px;
+    color: #FFF;
+}
+.bot_main {
+	color:#fff;
+margin-bottom:8px;
+}
+.bot_main a{
+	color:#fff;
+}
+.bot_main img{
+	position:relative;
+	vertical-align:middle;
+}
+</style>
+</head>
+
+<body>
+<div class="footerGroup">
+<div class="bot_main">
+  <div align="center"><br />
+&nbsp;&nbsp; 建议浏览器：
+
+<a class="google_pic" target="_blank" href="https://www.google.cn/intl/zh-CN/chrome/"><img src="../images/Google.png" width="20" height="20" border="0" />谷歌</a>
+<a class="firefox_pic" target="_blank" href="http://www.firefox.com.cn/download/"><img src="../images/Firefox.png" width="22" height="22" border="0" />火狐</a>
+<a href="https://browser.360.cn/" target="_blank"><img src="../images/360safe.jpg" width="20" height="20" border="0" /></a>
+<a href="https://browser.360.cn/ee/" target="_blank"><img src="../images/360fast.jpg" width="20" height="20" border="0" /></a>360请用极速模式，双核浏览器请用极速模式　
+</div>
+
+</div>
+<div class="footer1">
+	<div class="footer_con">
+	  <p>杭州麦达电子有限公司版权所有 Copyright 2022 All Rights Reserved</p>
+	</div>
+</div>
+</div>
+</body>
+</html>
+ 
+
+ 
+
+<div class="ba" id="fjdiv" style="display:none">
+	<table cellpadding="0" cellspacing="0" height="100%" width="100%">
+    <tr>
+    	<td>
+			<div class="down_box senior_box">
+            	<a class="senior_close" onclick="javascript:$('#fjdiv').hide()"><img src="images/senior_close.jpg"/></a>
+                <div class="box_con">
+                    	<h2>附件下载</h2><!-- 附件下载 -->
+                        <div class="link">
+                            
+                        </div>
+                        <div class="year" style="color:#838383;">
+                        	点击附件名称下载您需要的附件<!--点击附件名称下载您需要的附件-->
+                        </div>
+                    </div>
+            </div>
+        </td>
+    </tr>
+    </table>
+</div>
+
+<form action="docinfo.action" method="post" target="_self" id="docinfo_form">
+ 	<input type="hidden" name="id1" id="id1">
+ 	<input type="hidden" name="id2" id="id2">
+ </form>
+</body>
+</html>

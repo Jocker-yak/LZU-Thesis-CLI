@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "兰大论文全文助手",
+  "version": "1.0.0",
+  "description": "在已登录的浏览器里从兰州大学论文门户检索，并把阅读器渲染的学位论文页面合成为图片版 PDF 下载。",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "action": {
+    "default_title": "兰大论文全文助手",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "options_ui": {
+    "page": "app.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "permissions": [
+    "storage",
+    "downloads",
+    "cookies"
+  ],
+  "host_permissions": [
+    "http://202.201.7.17/*",
+    "http://202.201.7.29/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://202.201.7.29/*"
+      ],
+      "js": [
+        "content-reader.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://202.201.7.17/*"
+      ],
+      "js": [
+        "content-portal.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "lzu-fulltext@oceaniaslazycat.heiyu.space",
+      "strict_min_version": "115.0"
+    }
+  }
+}

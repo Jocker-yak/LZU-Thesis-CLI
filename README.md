@@ -232,3 +232,24 @@ tools/                      本机没有 git 时用来推送/回拉校验的脚�
 | `grab` 列出了好几条候选 | 关键词太宽（比如只有导师名）。加 `--index N` 或 `--find-fid <fid>` |
 | `--link` 取不到令牌 | 该链接要带门户会话；用 `fetch --link`（内部会先 warm），不要自己裸请求 |
 | `.29` 连不上（`probe` 显示不可达） | 站点临时故障，稍后重试 |
+
+---
+
+## 10. 浏览器插件（Chrome / Firefox）
+
+不想装 Python、也不想手动拷 `JSESSIONID`？同一套流程也做成了浏览器插件，
+直接复用你浏览器里已登录的门户会话：在阅读器页面上点「获取全文」，
+或在插件 popup 里检索后下载，后台抓页面、合成 PDF、走浏览器下载。
+
+```bash
+cd extension
+npm install && npm run build      # 产物：extension/dist/{chrome,firefox}
+```
+
+* Chrome：`chrome://extensions/` → 开发者模式 → 「加载已解压的扩展程序」→ 选 `extension/dist/chrome`；
+* Firefox：`about:debugging#/runtime/this-firefox` → 「临时载入附加组件」→ 选 `extension/dist/firefox/manifest.json`；
+* 打包好的 zip / xpi 在 `release/` 下。
+
+装上后点工具栏图标有使用说明（检索 / 令牌 / 直链三种入口）。
+插件与 CLI 共用同一套门户、阅读器与 DRM 令牌协议，Python 部分一行未改；
+详细的安装、设置、测试与限制说明见 [extension/README.md](extension/README.md)。
