@@ -21,6 +21,8 @@ import path from 'node:path';
 import { packTarget } from './zip.mjs';
 
 const root = path.resolve(import.meta.dirname, '..'); // extension/
+const repoRoot = path.resolve(root, '..'); // 仓库根（release/ 在其下）
+
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => {
   const hit = argv.find((a) => a.startsWith(`--${name}=`));
@@ -62,13 +64,21 @@ function findLocalFirefox() {
 }
 
 async function buildArtifacts() {
-  console.log('构建扩展并打 XPI…');
+  console.log('构建扩展…');
   run('node scripts/build.mjs');
+  // 优先用仓库内已发布的 XPI：E2E 验证的就是用户拿到的那个包。
+  const version = JSON.parse(readFileSync(path.join(root, 'dist/firefox/manifest.json'), 'utf8')).version;
+  const shipped = path.join(repoRoot, 'release', version, `lzu-fulltext-firefox-${version}.xpi`);
+  if (existsSync(shipped)) {
+    console.log(`XPI（发布包）：${shipped}`);
+    return { xpi: shipped, version };
+  }
+  console.log('仓库内没有发布包，现场打 XPI…');
   const outputs = await packTarget('firefox', { releaseDir: OUT_DIR });
   const xpi = outputs.find((p) => p.endsWith('.xpi'));
   if (!xpi) throw new Error('没有生成 XPI');
   console.log(`XPI：${xpi}`);
-  return xpi;
+  return { xpi, version };
 }
 
 function summarize() {
@@ -89,7 +99,7 @@ async function runLocal(xpi) {
   run(`LZU_FIREFOX_BIN='${firefox}' LZU_FIREFOX_XPI='${xpi}' node tests/e2e/firefox.mjs`);
 }
 
-async function runDocker(xpi) {
+async function runDocker(xpi, version) {
   if (!sshReady()) {
     throw new Error(`连不上 ${SSH_HOST}（ssh -F ${SSH_CONFIG}）。确认远程主机或改用本机 Firefox。`);
   }
@@ -98,6 +108,12 @@ async function runDocker(xpi) {
     console.log(`远程缺少镜像 ${IMAGE}，开始拉取…`);
     run(`ssh -F ${SSH_CONFIG} ${SSH_HOST} 'docker pull ${IMAGE}'`);
   }
+  console.log(`同步 release/ → ${SSH_HOST}:${REMOTE_DIR}/release…`);
+  run(
+    `tar -C ${repoRoot}/release -czf - . `
+    + `| ssh -F ${SSH_CONFIG} ${SSH_HOST} 'mkdir -p ${REMOTE_DIR}/release && tar -C ${REMOTE_DIR}/release -xzf -'`,
+  );
+
   console.log(`同步 extension/ → ${SSH_HOST}:${REMOTE_DIR}…`);
   run(
     `tar -C ${root} --exclude=./tests/e2e/out --exclude='./tests/e2e/out/*' -czf - . `
@@ -105,16 +121,19 @@ async function runDocker(xpi) {
   );
 
   // 容器里绑定 127.0.0.1:80，需要 root；playwright 镜像默认就是 root。
-  const remoteXpi = `/ext/${path.relative(root, xpi).split(path.sep).join('/')}`;
+  const remoteXpi = xpi.startsWith(path.join(repoRoot, 'release'))
+    ? `/release/${path.relative(path.join(repoRoot, 'release'), xpi).split(path.sep).join('/')}`
+    : `/ext/${path.relative(root, xpi).split(path.sep).join('/')}`;
   console.log(`在容器 ${IMAGE} 里跑 Firefox E2E（Marionette + Xvfb）…`);
   run(
     `ssh -F ${SSH_CONFIG} ${SSH_HOST} "docker run --rm -v ${REMOTE_DIR}:/ext -w /ext `
+    + `-v ${REMOTE_DIR}/release:/release:ro -e LZU_RELEASE_DIR=/release/${version} `
     + `-e HTTP_PROXY= -e HTTPS_PROXY= -e http_proxy= -e https_proxy= `
     + `-e LZU_FIREFOX_XPI='${remoteXpi}' `
     + `-e LZU_E2E_OUT=/ext/tests/e2e/out/firefox `
     + `${IMAGE} `
     + `bash -lc 'Xvfb :99 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 & sleep 1; export DISPLAY=:99; `
-    + `node tests/e2e/firefox.mjs'"`,
+    + `node --test tests/unit/version.test.mjs && node tests/e2e/firefox.mjs'"`,
   );
 
   console.log('回传测试产物…');
@@ -126,7 +145,7 @@ async function runDocker(xpi) {
 }
 
 async function main() {
-  const xpi = await buildArtifacts();
+  const { xpi, version } = await buildArtifacts();
   const chosen = (() => {
     if (mode === 'local' || mode === 'docker') return mode;
     if (findLocalFirefox()) return 'local';
@@ -138,7 +157,7 @@ async function main() {
   }
   console.log(`Firefox E2E 模式：${chosen}`);
   if (chosen === 'local') await runLocal(xpi);
-  else await runDocker(xpi);
+  else await runDocker(xpi, version);
   summarize();
 }
 

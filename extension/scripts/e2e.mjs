@@ -20,6 +20,10 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..'); // extension/
+const repoRoot = path.resolve(root, '..'); // 仓库根（release/ 在其下）
+function readVersion() {
+  return JSON.parse(readFileSync(path.join(root, 'dist/chrome/manifest.json'), 'utf8')).version;
+}
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => {
   const hit = argv.find((a) => a.startsWith(`--${name}=`));
@@ -96,13 +100,20 @@ async function runDocker() {
     + `| ssh -F ${SSH_CONFIG} ${SSH_HOST} 'mkdir -p ${REMOTE_DIR} && tar -C ${REMOTE_DIR} -xzf -'`,
   );
 
+  console.log(`同步 release/ → ${SSH_HOST}:${REMOTE_DIR}/release（发布物一致性测试要用）…`);
+  run(
+    `tar -C ${repoRoot}/release -czf - . `
+    + `| ssh -F ${SSH_CONFIG} ${SSH_HOST} 'mkdir -p ${REMOTE_DIR}/release && tar -C ${REMOTE_DIR}/release -xzf -'`,
+  );
+
   console.log(`在容器 ${IMAGE} 里跑 E2E…`);
   run(
     `ssh -F ${SSH_CONFIG} ${SSH_HOST} "docker run --rm -v ${REMOTE_DIR}:/ext -w /ext `
+    + `-v ${REMOTE_DIR}/release:/release:ro -e LZU_RELEASE_DIR=/release/${readVersion()} `
     + `-e PLAYWRIGHT_BROWSERS_PATH=/ms-playwright -e HTTP_PROXY= -e HTTPS_PROXY= -e http_proxy= -e https_proxy= `
     + `${IMAGE} `
     + `bash -lc 'Xvfb :99 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 & sleep 1; export DISPLAY=:99; `
-    + `node tests/e2e/chrome.mjs --extension=dist/chrome --out=tests/e2e/out'"`,
+    + `node --test tests/unit/version.test.mjs && node tests/e2e/chrome.mjs --extension=dist/chrome --out=tests/e2e/out'"`,
   );
 
   console.log('回传测试产物…');

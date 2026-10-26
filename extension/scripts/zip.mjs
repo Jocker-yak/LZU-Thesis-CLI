@@ -1,19 +1,30 @@
 /**
- * 把 dist/chrome、dist/firefox 打成可分发压缩包（零依赖，自写 ZIP 写入器）：
- *   /data/workspaces/lzu-plugin/release/lzu-fulltext-chrome-<version>.zip
- *   /data/workspaces/lzu-plugin/release/lzu-fulltext-firefox-<version>.zip
- *   /data/workspaces/lzu-plugin/release/lzu-fulltext-firefox-<version>.xpi   （同一份 ZIP 的副本）
+ * 把 dist/chrome、dist/firefox 打成可分发压缩包（零依赖，自写 ZIP 写入器），
+ * 输出到仓库内 release/<version>/，并写 SHA256SUMS.txt：
+ *   LZU-Thesis-CLI/release/<version>/lzu-fulltext-chrome-<version>.zip
+ *   LZU-Thesis-CLI/release/<version>/lzu-fulltext-firefox-<version>.zip
+ *   LZU-Thesis-CLI/release/<version>/lzu-fulltext-firefox-<version>.xpi   （同一份 ZIP 的副本）
+ *   LZU-Thesis-CLI/release/<version>/SHA256SUMS.txt
  *
- * 用法：node scripts/zip.mjs [chrome|firefox]
+ * ZIP 条目时间戳固定为 2020-01-01，保证同一份 dist 重复打包字节完全相同；
+ * 若 release/<version>/ 已存在且校验和不同，会拒绝覆盖（避免静默改发布物），
+ * 需要明确覆盖时用 --force；正常改代码请升版本号。
+ *
+ * 用法：node scripts/zip.mjs [chrome|firefox] [--force]
  */
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { inflateRawSync, deflateRawSync } from 'node:zlib';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const distRoot = path.join(root, 'dist');
-// extension/ → LZU-Thesis-CLI/ → lzu-plugin/（工作区根）
-const DEFAULT_RELEASE_DIR = path.resolve(root, '..', '..', 'release');
+// extension/ → LZU-Thesis-CLI/
+const REPO_ROOT = path.resolve(root, '..');
+// ZIP 条目固定时间戳，保证可复现
+const FIXED_MTIME = new Date('2020-01-01T00:00:00Z');
 
 // ---------------------------------------------------------------- CRC32
 
@@ -36,7 +47,7 @@ function crc32(buf) {
 // ---------------------------------------------------------------- ZIP 写入
 
 function dosDateTime(date) {
-  const d = date instanceof Date ? date : new Date();
+  const d = date instanceof Date ? date : FIXED_MTIME;
   const year = Math.max(1980, d.getFullYear());
   return {
     time: (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2),
@@ -189,15 +200,14 @@ async function packTarget(targetName, { releaseDir = null } = {}) {
   const files = await walk(dir);
   const payload = [];
   for (const file of files) {
-    const info = await stat(file.full);
-    payload.push({ name: file.name, data: await readFile(file.full), mtime: info.mtime });
+    payload.push({ name: file.name, data: await readFile(file.full), mtime: FIXED_MTIME });
   }
 
   const manifest = JSON.parse(await readFile(path.join(dir, 'manifest.json'), 'utf8'));
   const zip = buildZip(payload);
   const { names } = verifyZip(zip, payload.map((f) => f.name));
 
-  const outDir = releaseDir || DEFAULT_RELEASE_DIR;
+  const outDir = releaseDir || path.join(REPO_ROOT, 'release', manifest.version);
   await mkdir(outDir, { recursive: true });
   const zipPath = path.join(outDir, `lzu-fulltext-${targetName}-${manifest.version}.zip`);
   await writeFile(zipPath, zip);
@@ -218,7 +228,37 @@ async function packTarget(targetName, { releaseDir = null } = {}) {
   return outputs;
 }
 
-export { buildZip, verifyZip, packTarget };
+/**
+ * 读回 ZIP 的所有条目（测试与校验用）：返回 Map<文件名, Buffer>。
+ * 只支持本文件写出的存储方式（中央目录 + 本地头，无加密）。
+ */
+function readZipEntries(buf) {
+  const eocdIndex = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (eocdIndex < 0) throw new Error('不是有效的 ZIP：找不到 EOCD');
+  const count = buf.readUInt16LE(eocdIndex + 10);
+  const centralSize = buf.readUInt32LE(eocdIndex + 12);
+  const centralOffset = buf.readUInt32LE(eocdIndex + 16);
+  const entries = new Map();
+  let c = centralOffset;
+  for (let i = 0; i < count; i += 1) {
+    const nameLen = buf.readUInt16LE(c + 28);
+    const extraLen = buf.readUInt16LE(c + 30);
+    const commentLen = buf.readUInt16LE(c + 32);
+    const name = buf.subarray(c + 46, c + 46 + nameLen).toString('utf8');
+    const localOffset = buf.readUInt32LE(c + 42);
+    const lnameLen = buf.readUInt16LE(localOffset + 26);
+    const lextraLen = buf.readUInt16LE(localOffset + 28);
+    const compSize = buf.readUInt32LE(localOffset + 18);
+    const method = buf.readUInt16LE(localOffset + 8);
+    const dataStart = localOffset + 30 + lnameLen + lextraLen;
+    const raw = buf.subarray(dataStart, dataStart + compSize);
+    entries.set(name, method === 8 ? inflateRawSync(raw) : Buffer.from(raw));
+    c += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+export { buildZip, verifyZip, readZipEntries, packTarget };
 
 const invokedDirectly = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(import.meta.dirname, 'zip.mjs');
 if (!invokedDirectly) {
@@ -227,16 +267,53 @@ if (!invokedDirectly) {
   await runCli();
 }
 
-async function runCli() {
-const only = process.argv.slice(2).find((a) => !a.startsWith('-'));
-const targets = only ? [only] : ['chrome', 'firefox'];
-for (const target of targets) {
-  if (!['chrome', 'firefox'].includes(target)) {
-    console.error(`未知目标：${target}（可选：chrome、firefox）`);
-    process.exit(2);
-  }
+function sha256(buf) {
+  return createHash('sha256').update(buf).digest('hex');
 }
-const all = [];
-for (const target of targets) all.push(...(await packTarget(target)));
-console.log(`打包完成，共 ${all.length} 个文件。`);
+
+/** 校验和清单格式与 sha256sum 一致：<hash>  <文件名> */
+function sumsText(paths) {
+  return paths
+    .map((p) => ({ name: path.basename(p), sha256: sha256(requireBuffer(p)) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((e) => `${e.sha256}  ${e.name}`)
+    .join('\n') + '\n';
+}
+
+function requireBuffer(p) {
+  // 同步读：清单很小，CLI 阶段无所谓
+  return readFileSync(p);
+}
+
+async function runCli() {
+  const args = process.argv.slice(2);
+  const force = args.includes('--force');
+  const only = args.find((a) => !a.startsWith('-'));
+  const targets = only ? [only] : ['chrome', 'firefox'];
+  for (const target of targets) {
+    if (!['chrome', 'firefox'].includes(target)) {
+      console.error(`未知目标：${target}（可选：chrome、firefox）`);
+      process.exit(2);
+    }
+  }
+
+  const all = [];
+  for (const target of targets) all.push(...(await packTarget(target)));
+  const outDir = path.dirname(all[0]);
+  const manifest = JSON.parse(await readFile(path.join(distRoot, targets[0], 'manifest.json'), 'utf8'));
+  const sumsPath = path.join(outDir, 'SHA256SUMS.txt');
+  const text = sumsText(all);
+  if (existsSync(sumsPath)) {
+    const old = await readFile(sumsPath, 'utf8');
+    if (old !== text && !force) {
+      console.error(
+        `✗ ${path.relative(REPO_ROOT, outDir)}/SHA256SUMS.txt 与本次构建不一致：\n`
+        + '  发布物已存在，拒绝静默覆盖。改代码请升版本号；确需覆盖同一版本请加 --force。',
+      );
+      process.exit(3);
+    }
+  }
+  await writeFile(sumsPath, text);
+  console.log(`✓ SHA256SUMS.txt：${all.length} 个文件 → ${sumsPath}`);
+  console.log(`打包完成，版本 ${manifest.version}，共 ${all.length} 个安装包。`);
 }

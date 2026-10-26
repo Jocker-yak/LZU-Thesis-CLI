@@ -43,23 +43,21 @@ pip install pillow
 | ③ 手上已经有令牌 | `python fulltext.py verify <令牌>` —— 注册这个令牌，打印它的 fid |
 | ④ 手上有原始 PDF 文件 | 文件本身就是答案：`certutil -hashfile 论文.pdf MD5`（Linux/macOS 用 `md5sum`）算出来的就是 fid |
 
-第 ② 条长这样（下面是实跑输出）：
+第 ② 条长这样（下面是示例输出）：
 
 ```powershell
 python fulltext.py fids "补播白刺花"
 
 # 门户命中 1 条
 #   00  fid=5cff3489f0c23900f886634fffe22fff 补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
-#   00  fid=注册失败                             补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
 #
 # 序号    fid                               标题
 # 00      5cff3489f0c23900f886634fffe22fff 补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
-# 00      注册失败                             补播白刺花和施厩肥对两种暖季型草地土壤理化性质和生产力的影响
 #
 # 共 1 条记录，1 个可用 fid。
 ```
 
-（这条记录挂了 2 个令牌，另一个指向服务器上已不存在的 `_free.pdf`，所以显示"注册失败"。）
+（示例输出，仅用于说明格式；真实使用时按你自己的检索词与数据为准。）
 
 关键词太宽（只有导师名）时，`grab` 会把所有候选连同 fid 列出来，让你挑：
 
@@ -248,8 +246,8 @@ npm install && npm run build      # 产物：extension/dist/{chrome,firefox}
 
 * Chrome：`chrome://extensions/` → 开发者模式 → 「加载已解压的扩展程序」→ 选 `extension/dist/chrome`；
 * Firefox：`about:debugging#/runtime/this-firefox` → 「临时载入附加组件」→ 选 `extension/dist/firefox/manifest.json`；
-* 打包好的 zip / xpi 在 `release/` 下；两个浏览器的端到端测试都在真浏览器里跑过
-  （`npm run test:e2e` / `npm run test:e2e:firefox`）。
+* 打包好的 zip / xpi 在 `release/<版本号>/` 下（同一份源码可重复打包出逐字节相同的包，附 `SHA256SUMS.txt`）；
+* 两个浏览器的端到端测试都在真浏览器里跑过（`npm run test:e2e` / `npm run test:e2e:firefox`）。
 
 装上后点工具栏图标有使用说明（检索 / 令牌 / 直链三种入口）。
 插件与 CLI 共用同一套门户、阅读器与 DRM 令牌协议，Python 部分一行未改；

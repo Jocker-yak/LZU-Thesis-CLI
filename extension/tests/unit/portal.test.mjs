@@ -64,7 +64,7 @@ test('objidToText 还原 ASCII 码（与 CLI 的 objid_to_text 一致）', () =>
 
 test('decodeEntities / stripTags：数字实体、命名实体、空白折叠', () => {
   assert.equal(decodeEntities('a &amp; b &lt;c&gt; &#24635; &#x4E2D;'), 'a & b <c> 总 中');
-  assert.equal(stripTags('<b>牦牛</b>\n  示例主题 &amp; 能量'), '牦牛 示例主题 & 能量');
+  assert.equal(stripTags('<b>草地</b>\n  土壤 &amp; 生产力'), '草地 土壤 & 生产力');
 });
 
 test('parseTotal 拿不到时返回 null（而不是 0）', () => {

@@ -34,7 +34,7 @@ dist/firefox/     Firefox
 
 ### Firefox
 
-1. `npm run build` 后得到 `dist/firefox/`（或用 `release/lzu-fulltext-firefox-1.0.1.xpi`）；
+1. `npm run build` 后得到 `dist/firefox/`（或用 `release/1.0.1/lzu-fulltext-firefox-1.0.1.xpi`）；
 2. 地址栏打开 `about:debugging#/runtime/this-firefox`；
 3. 点「临时载入附加组件…」，选择 **`dist/firefox/manifest.json`**；
 4. 工具栏出现图标即成功。
@@ -52,12 +52,12 @@ dist/firefox/     Firefox
 页面右下角会出现插件浮层：
 
 ```
-┌──────────────────────────────┐
+┌────────────────────────────────┐
 │ 论文全文                       │
-│ 补播白刺花对能量摄入…      │
-│ 200 页 · fid 5cff3489…        │
+│ 补播白刺花和施厩肥对两种暖季…  │
+│ 200 页 · fid 5cff3489…         │
 │ [ 获取全文 ]      [ 工作台 ]   │
-└──────────────────────────────┘
+└────────────────────────────────┘
 ```
 
 点「获取全文」→ 后台自动读令牌里的页码、逐页抓图、合成 PDF，然后走浏览器下载。
@@ -110,10 +110,10 @@ cd extension
 npm install
 
 npm run build          # 生成 dist/chrome 与 dist/firefox
-npm run package        # 生成 /data/workspaces/lzu-plugin/release/*.zip（Firefox 另有 .xpi）
+npm run package        # 生成仓库内 release/<version>/*.zip 与 SHA256SUMS.txt（Firefox 另有 .xpi）
 npm run icons          # 重新生成 assets/icons/*.png（纯 Node，无 Pillow 依赖）
 
-npm test                    # = test:unit + test:integration（66 项，纯 Node，无需浏览器）
+npm test                    # = test:unit + test:integration（72 项，纯 Node，无需浏览器）
 npm run test:unit
 npm run test:integration
 
@@ -161,23 +161,40 @@ npm run test:e2e:firefox -- --mode=docker
 同样支持 `LZU_E2E_SSH_CONFIG / LZU_E2E_SSH_HOST / LZU_E2E_REMOTE_DIR / LZU_E2E_IMAGE` 覆盖；
 本机跑可用 `LZU_FIREFOX_BIN=/path/to/firefox` 指定浏览器。
 
+### 发布物可复现
+
+`npm run package` 把安装包写进**仓库内** `release/<version>/`（不再只在某个临时目录里），并生成
+`SHA256SUMS.txt`：
+
+```bash
+npm run build && npm run package      # → release/1.0.1/*.zip、*.xpi、SHA256SUMS.txt
+sha256sum -c release/1.0.1/SHA256SUMS.txt
+```
+
+- ZIP 条目时间戳固定（`2020-01-01`）、条目顺序固定 ⇒ 同样的源码重复打包得到**逐字节相同**的包；
+- 若 `release/<version>/` 已存在且校验和不同，`npm run package` 会拒绝覆盖（要覆盖加 `--force`，
+  通常意味着应该升版本号）；
+- `tests/unit/version.test.mjs` 校验 `dist/` ↔ `release/` ↔ `SHA256SUMS.txt` 三者逐字节一致，
+  两个浏览器 E2E 在容器里也会先跑它（`LZU_RELEASE_DIR` 指向挂载的 release 目录），
+  保证「改了代码忘了重新打包」会被测试抓住。
+
 ### 测试用的真实数据
 
-`tests/fixtures/` 里是**真实抓包**（2026-10 采集，只是数据，不含任何账号信息）：
+`tests/fixtures/` 里是真实抓包与脱敏重建的样例（只是数据，不含任何账号或读者隐私）：
 
 | 文件 | 内容 |
 | --- | --- |
 | `portal/resultlist.html` | 门户检索「侯扶江」的结果页（20 行 / 标称 77 条） |
 | `portal/docinfo-empty.html` | 一条没有全文入口的论文信息页 |
 | `portal/docinfo-link.html` | 一条有 `onlinePDF` 链接的论文信息页 |
-| `portal/token.json` | 真实 501 字符 DRM 令牌 + 302 响应头（用于令牌编解码测试） |
+| `portal/token.json` | 真实格式的 DRM 令牌（脱敏重建，613 字符）+ 302 响应头（用于令牌编解码测试） |
 | `images/school.jpg` | 真实 1024×750 JPEG（mock 页面图） |
 
 重新抓一遍（只读，需要能访问门户）：
 
 ```bash
 npm run fixtures:capture            # 默认关键词「侯扶江」
-node tests/fixtures/capture.mjs 牦牛
+node tests/fixtures/capture.mjs 侯扶江
 ```
 
 ---
@@ -259,6 +276,7 @@ extension/
   scripts/                     build.mjs（esbuild）/ zip.mjs（自写 ZIP）/ make-icons.mjs
                                e2e.mjs（Chrome）/ e2e-firefox.mjs（Firefox）
   tests/                       unit / integration / e2e / mock / fixtures
+    unit/version.test.mjs      发布物一致性（dist ↔ release ↔ SHA256SUMS）
     e2e/chrome.mjs             Playwright 驱动 Chromium 加载扩展
     e2e/firefox.mjs            Marionette 驱动 Firefox 临时安装 XPI
     e2e/lib/marionette.mjs     零依赖 Marionette 客户端（装扩展 / chrome 上下文 / 执行脚本）
